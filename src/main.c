@@ -1,12 +1,17 @@
+#include <stdio.h>
 
+#include "http.h"
 
-#include "conn.h"
-
-typedef unsigned int uint;
+http_response_t res;
+http_request_t req;
 
 int main(void) {
-  if(conn_init()) return 1;
-  conn_loop();
-  conn_deinit();
+  if(http_init()) return 1;
+  while(1) {
+    if(http_next(&req, 5000) == -1) continue;
+    http_response_to_request(&res, &req);
+    http_send(&res);
+  }
+  http_deinit();
   return 0;
 }

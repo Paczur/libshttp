@@ -8,48 +8,64 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define MSG_MAX 500
-#define PORT 1337
+#define PORT 69
 #define BACKLOG_SIZE 2
-#define RESPONSE_MSG "HTTP/1.1 204 No Content\n"
 #define MAX_CONNS 10
 
 struct pollfd sockfd = {.events = POLLIN};
 struct pollfd connfds[MAX_CONNS];
 
-char buff[MSG_MAX];
-
 void conn_close(int *fd) {
   close(*fd);
-  *fd = 0;
+  *fd = -1;
 }
 
-void conn_loop(void) {
-  int poll_count;
-  int counter;
-  while(1) {
-    poll_count = poll(&sockfd, 1, 0);
-    counter = 0;
-    for(size_t i = 0; i < MAX_CONNS && counter < poll_count; i++) {
-      if(!connfds[i].fd) {
-        connfds[i].fd = accept(sockfd.fd, NULL, NULL);
-        counter++;
-      }
+bool conn_accept(int timeout) {
+  if(!poll(&sockfd, 1, timeout)) return false;
+  for(size_t i = 0; i < MAX_CONNS; i++) {
+    if(connfds[i].fd == -1) {
+      connfds[i].fd = accept(sockfd.fd, NULL, NULL);
+      return true;
     }
+  }
+  return false;
+}
 
-    for(size_t i = 0; i < MAX_CONNS; i++) {
-      if(connfds[i].fd && poll(&connfds[i], 1, 0) > 0) {
-        if(connfds[i].revents & POLLIN) {
-          recv(connfds[i].fd, buff, sizeof(buff), 0);
-          printf("%s\n", buff);
+bool conn_accept_nblk(void) { return conn_accept(0); }
 
-          send(connfds[i].fd, RESPONSE_MSG, sizeof(RESPONSE_MSG), 0);
-          conn_close(&connfds[i].fd);
-          puts(RESPONSE_MSG);
+bool conn_id_valid(size_t id) { return id < MAX_CONNS; }
+
+size_t conn_next(char *req, ssize_t *len, size_t max_len, int timeout) {
+  for(size_t j = 0; j < 2; j++) {
+    conn_accept(timeout / 4);
+    if(poll(connfds, MAX_CONNS, timeout / 4) > 0) {
+      for(size_t i = 0; i < MAX_CONNS; i++) {
+        if(connfds[i].fd && poll(&connfds[i], 1, 0) > 0) {
+          *len = recv(connfds[i].fd, req, max_len, 0);
+          return i;
         }
       }
     }
   }
+  *len = -1;
+  return -1;
+}
+
+size_t conn_next_nblk(char *req, ssize_t *len, size_t max_len) {
+  for(size_t i = 0; i < MAX_CONNS; i++) {
+    if(connfds[i].fd && poll(&connfds[i], 1, 0) > 0) {
+      *len = recv(connfds[i].fd, req, max_len, 0);
+      return i;
+    }
+  }
+  *len = -1;
+  return -1;
+}
+
+void conn_send(const char *res, size_t res_len, size_t id) {
+  send(connfds[id].fd, res, res_len, 0);
+  conn_close(&connfds[id].fd);
+  conn_accept_nblk();
 }
 
 int conn_init(void) {
@@ -67,6 +83,7 @@ int conn_init(void) {
   }
   listen(sockfd.fd, BACKLOG_SIZE);
   for(size_t i = 0; i < MAX_CONNS; i++) {
+    connfds[i].fd = -1;
     connfds[i].events = POLLIN | POLLOUT;
   }
   return 0;
