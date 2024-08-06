@@ -1,17 +1,17 @@
 #include <stdio.h>
 
-#include "http.h"
+#include "shttp.h"
 
-http_response_t res;
-http_request_t req;
+shttp_response res;
+shttp_request req;
 
 int main(void) {
-  if(http_init()) return 1;
+  if(shttp_init()) return 1;
   while(1) {
-    if(http_next(&req, 5000) == -1) continue;
-    http_response_to_request(&res, &req);
-    http_send(&res);
+    if(shttp_next(&req, 5000)) continue;
+    shttp_response_to_request(&res, &req);
+    shttp_send(&res);
   }
-  http_deinit();
+  shttp_deinit();
   return 0;
 }

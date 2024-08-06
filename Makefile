@@ -7,7 +7,7 @@ WARN=-Wall -Wextra
 MEMORY_DEBUG=-fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract
 DEBUG=$(MEMORY_DEBUG) -Og -ggdb3  -fsanitize=undefined \
 			-fsanitize-address-use-after-scope -fstack-check -fno-stack-clash-protection
-RELEASE=-O2 -s -pipe -flto=4 -fwhole-program -D NDEBUG
+RELEASE=-Os -s -pipe -flto=4 -fwhole-program -D NDEBUG
 CFLAGS=$(WARN) -march=native -std=gnu99 $(LIBS)
 SOURCES=$(wildcard $(SRC)/*.c $(SRC)/**/*.c)
 OBJECTS=$(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(SOURCES))

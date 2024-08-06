@@ -1,17 +1,20 @@
-#ifndef CONN_H
-#define CONN_H
+#ifndef SHTTP_CONN_H
+#define SHTTP_CONN_H
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <sys/types.h>
+#include "types.h"
 
-bool conn_accept(int timeout);
-bool conn_accept_nblk(void);
-bool conn_id_valid(size_t id);
-size_t conn_next(char *req, ssize_t *len, size_t max_len, int timeout);
-size_t conn_next_nblk(char *req, ssize_t *len, size_t max_len);
-void conn_send(const char *res, size_t res_len, size_t id);
-int conn_init(void);
-void conn_deinit(void);
+#define MAX_CONNS 10
+typedef shttp_u8 shttp_conn_id;
+
+bool shttp_conn_accept(shttp_u16 timeout);
+bool shttp_conn_accept_nblk(void);
+bool shttp_conn_id_valid(shttp_conn_id id);
+shttp_conn_id shttp_conn_next(char *req, shttp_u16 *len, shttp_u16 max_len,
+                              shttp_u16 timeout);
+shttp_conn_id shttp_conn_next_nblk(char *req, shttp_u16 *len,
+                                   shttp_u16 max_len);
+void shttp_conn_send(const char *res, shttp_u16 res_len, shttp_conn_id id);
+bool shttp_conn_init(void);
+void shttp_conn_deinit(void);
 
 #endif
