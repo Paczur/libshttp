@@ -7,8 +7,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define PORT 69
-#define BACKLOG_SIZE 2
+#include "conf.h"
 
 struct pollfd sockfd = {.events = POLLIN};
 struct pollfd connfds[MAX_CONNS];
@@ -83,7 +82,7 @@ bool shttp_conn_init(void) {
     printf("Socket bind failed, errno: %u\n", errno);
     return true;
   }
-  listen(sockfd.fd, BACKLOG_SIZE);
+  listen(sockfd.fd, SOCKET_BACKLOG_SIZE);
   for(shttp_conn_id i = 0; i < MAX_CONNS; i++) {
     connfds[i].fd = -1;
     connfds[i].events = POLLIN | POLLOUT;

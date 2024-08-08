@@ -1,16 +1,8 @@
 #ifndef SHTTP_H
 #define SHTTP_H
 
-#include "conn.h"
+#include "macros.h"
 #include "types.h"
-
-typedef struct shttp_request {
-  shttp_conn_id id;
-} shttp_request;
-
-typedef struct shttp_response {
-  shttp_conn_id id;
-} shttp_response;
 
 void shttp_parse_request(shttp_request *req, const char *msg,
                          shttp_u16 msg_len);

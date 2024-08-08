@@ -3,29 +3,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "conf.h"
 #include "conn.h"
-
-#define PLACEHOLDER_MSG "HTTP/1.1 200 OK\n"
-#define REQUEST_LENGTH 500
-#define RESPONSE_LENGTH 500
-
-#define MIN(x, y) (((x) > (y)) ? (y) : (x))
+#include "parse.h"
 
 char request[REQUEST_LENGTH];
 char response[RESPONSE_LENGTH];
-
-void shttp_parse_request(shttp_request *req, const char *msg,
-                         shttp_u16 msg_len) {
-  (void)req;
-  printf("%.*s", (int)msg_len, msg);
-}
-
-shttp_u16 shttp_parse_response(char *msg, shttp_u16 msg_len,
-                               const shttp_response *res) {
-  (void)res;
-  strncpy(msg, PLACEHOLDER_MSG, msg_len);
-  return MIN(msg_len, sizeof(PLACEHOLDER_MSG));
-}
 
 bool shttp_next(shttp_request *req, shttp_u16 timeout) {
   shttp_u16 len;

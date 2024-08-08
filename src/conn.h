@@ -3,9 +3,6 @@
 
 #include "types.h"
 
-#define MAX_CONNS 10
-typedef shttp_u8 shttp_conn_id;
-
 bool shttp_conn_accept(shttp_u16 timeout);
 bool shttp_conn_accept_nblk(void);
 bool shttp_conn_id_valid(shttp_conn_id id);
