@@ -43,11 +43,17 @@ typedef enum shttp_version {
 } shttp_version;
 
 typedef struct shttp_request {
-  shttp_conn_id id;
-  shttp_method method;
+  bool has_host : 1;
+
+  shttp_version version : 3;
+  shttp_method method : 4;
+  shttp_conn_id id;  // 16
+
+  shttp_u16 host_port;
+  char host_domain[50];
+
   char path[128];
-  shttp_version version;
-} shttp_request;
+} __attribute__((packed)) shttp_request;
 
 typedef struct shttp_response {
   shttp_conn_id id;

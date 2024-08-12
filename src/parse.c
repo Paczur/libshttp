@@ -8,6 +8,49 @@
 
 #define PLACEHOLDER_MSG "HTTP/1.1 200 OK\n"
 
+static shttp_u16 shttp_string_number(shttp_u16 *n, const char *msg,
+                                     shttp_u16 len) {
+  shttp_u16 res = 0;
+  for(shttp_u16 i = 0; i < len; i++) {
+    if(msg[i] < '0' || msg[i] > '9') {
+      *n = res;
+      return i;
+    }
+    res *= 10;
+    res += msg[i] - '0';
+  }
+  *n = res;
+  return len - 1;
+}
+
+static shttp_u16 shttp_token_cpy_until(char *token, const char *msg,
+                                       shttp_u16 len, char end) {
+  for(shttp_u16 i = 0; i < len; i++) {
+    if(!msg[i] || msg[i] == ' ' || msg[i] == '\n' || msg[i] == '\r' ||
+       msg[i] == end) {
+      token[i] = 0;
+      return i;
+    }
+    token[i] = msg[i];
+  }
+  token[len - 1] = 0;
+  return len - 1;
+}
+
+static bool shttp_token_cmp_until(const char *token, const char *msg,
+                                  shttp_u16 len, char end) {
+  for(shttp_u16 i = 0; i < len; i++) {
+    if(!token[i] && (!msg[i] || msg[i] == ' ' || msg[i] == '\n' ||
+                     msg[i] == '\r' || msg[i] == end)) {
+      return true;
+    }
+    if(msg[i] != token[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static shttp_u16 shttp_token_cpy(char *token, const char *msg, shttp_u16 len) {
   for(shttp_u16 i = 0; i < len; i++) {
     if(!msg[i] || msg[i] == ' ' || msg[i] == '\n' || msg[i] == '\r') {
@@ -22,8 +65,8 @@ static shttp_u16 shttp_token_cpy(char *token, const char *msg, shttp_u16 len) {
 
 static bool shttp_token_cmp(const char *token, const char *msg, shttp_u16 len) {
   for(shttp_u16 i = 0; i < len; i++) {
-    if(!token[i] && (!msg[i] || msg[i] == ' ' || msg[i] == '\n') ||
-       msg[i] == '\r') {
+    if(!token[i] &&
+       (!msg[i] || msg[i] == ' ' || msg[i] == '\n' || msg[i] == '\r')) {
       return true;
     }
     if(msg[i] != token[i]) {
@@ -104,38 +147,104 @@ static shttp_u16 shttp_parse_version(shttp_request *req, const char *msg,
   return sizeof("HTTP/1.0") - 1;
 }
 
-void shttp_parse_request(shttp_request *req, const char *msg,
-                         shttp_u16 msg_len) {
+static shttp_u16 shttp_parse_request_start_line(shttp_request *req,
+                                                const char *msg,
+                                                shttp_u16 msg_len) {
+  shttp_u16 off;
   shttp_u16 step;
-
-  printf("%.*s", (int)msg_len, msg);
   step = shttp_parse_method(req, msg, msg_len);
   if(!step || !msg[step]) {
     puts("Malformed request: Method parse error");
-    return;
+    return 0;
   }
   step++;
 
-  msg += step;
-  msg_len -= step;
-  step = shttp_parse_path(req, msg, msg_len);
+  off = step;
+  step = shttp_parse_path(req, msg + off, msg_len - off);
   if(!step || !msg[step]) {
     puts("Malformed request: Path parse error");
-    return;
+    return 0;
   }
   step++;
 
-  msg += step;
-  msg_len -= step;
-  step = shttp_parse_version(req, msg, msg_len);
+  off += step;
+  step = shttp_parse_version(req, msg + off, msg_len - off);
   if(!step) {
     puts("Malformed request: Version parse error");
-    return;
+    return 0;
   }
-  if(!msg[step] || !msg[step + 1]) return;
-  step++;
+  if(!msg[step] || !msg[step + 1]) return 0;
+  return off + step + 2;
+}
 
-  printf("%u %s %u\n", req->method, req->path, req->version);
+static shttp_u16 shttp_parse_header_host(shttp_request *req, const char *msg,
+                                         shttp_u16 msg_len) {
+  shttp_u16 off;
+  shttp_u16 step;
+  shttp_u16 port;
+  if(!shttp_token_cmp("Host:", msg, msg_len)) return 0;
+
+  off = sizeof("Host:") - 1;
+  if(!msg[off]) return 0;
+  off++;
+
+  step = shttp_token_cpy_until(req->host_domain, msg + off, msg_len - off, ':');
+  if(!step) return 0;
+  if(msg[off + step] != '\r') {
+    if(msg[off + step] != ':' || !msg[off + step + 1]) return 0;
+    step++;
+    off += step;
+    step = shttp_string_number(&port, msg + off, msg_len - off);
+    if(!step) return 0;
+    req->host_port = port;
+    req->has_host = true;
+    return off + step;
+  }
+  req->host_port = 80;
+  req->has_host = true;
+  return off + step;
+}
+
+static shttp_u16 shttp_parse_request_header(shttp_request *req, const char *msg,
+                                            shttp_u16 msg_len) {
+  shttp_u16 step;
+  shttp_u16 off = 0;
+  while(msg[off] != '\r' && msg[off + 1] != '\n') {
+    if(!req->has_host &&
+       (step = shttp_parse_header_host(req, msg + off, msg_len - off))) {
+      off += step;
+      if(!msg[off] || !msg[off + 1]) {
+        puts("Malformed request: Header parse error");
+        return 0;
+      }
+      off += 2;
+    } else {
+      return off;
+    }
+  }
+  return off + 2;
+}
+
+shttp_u16 shttp_parse_request(shttp_request *req, const char *msg,
+                              shttp_u16 msg_len) {
+  shttp_u16 off = 0;
+  shttp_u16 step;
+  step = shttp_parse_request_start_line(req, msg, msg_len);
+  if(!step) {
+    puts("Malformed Request: Error parsing start_line");
+    return 0;
+  }
+  off += step;
+  if(!msg[off]) return off;
+
+  step = shttp_parse_request_header(req, msg + off, msg_len - off);
+  if(!step) {
+    puts("Malformed Request: Error parsing header");
+    return 0;
+  }
+  off += step;
+  if(!msg[step]) return off;
+  return off;
 }
 
 shttp_u16 shttp_parse_response(char *msg, shttp_u16 msg_len,
