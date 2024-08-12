@@ -1,6 +1,6 @@
 BIN=bin
 BUILD=build
-TEST_DIR=bin/tests
+TESTB=bin/tests
 DIRS=$(BIN) $(BUILD)
 SRC=src
 
@@ -12,21 +12,19 @@ DEBUG=$(NO_WARN_DEBUG) $(MEMORY_DEBUG) -Og -ggdb3  -fsanitize=undefined -fsaniti
 LIBS=$(shell pkg-config --cflags --libs cmocka)
 RELEASE=-Os -s -pipe -flto=4 -fwhole-program -D NDEBUG
 CFLAGS=$(WARN) -march=native -std=gnu99 $(LIBS)
-TESTS=$(wildcard $(SRC)/*.test.c $(SRC)/**/*.test.c)
-BIN_TESTS=$(patsubst $(SRC)/%.test.c, $(TEST_DIR)/%.test,$(TESTS))
+
+TESTS=$(wildcard $(SRC)/*.test.c $(SRC)/*/*.test.c)
+BIN_TESTS=$(patsubst %/,$(TESTB)/%.test,$(dir $(subst $(SRC)/,,$(TESTS))))
 SOURCES=$(filter-out $(TESTS), $(wildcard $(SRC)/*.c $(SRC)/**/*.c))
 OBJECTS=$(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(SOURCES))
 DEPENDS=$(patsubst $(SRC)/%.c,$(BUILD)/%.d,$(SOURCES))
-
-export CCACHE_DIR := ccache
-CC=ccache gcc
 
 all: release
 
 $(shell mkdir -p $(dir $(DEPENDS)))
 -include $(DEPENDS)
 
-.PHONY: all install uninstall release debug re re_clean clean
+.PHONY: all install uninstall release debug clean
 MAKEFLAGS := --jobs=$(shell nproc)
 MAKEFLAGS += --output-sync=target
 $(VERBOSE).SILENT:
@@ -53,7 +51,11 @@ tests: $(BIN_TESTS)
 $(BIN)/libshttp: $(OBJECTS) | $(BIN)
 	$(CC) $(CFLAGS) -MMD -MP -o $@ $^
 
-$(TEST_DIR)/%.test: $(SRC)/%.test.c $(SRC)/%.c | $(TEST_DIR)
+$(TESTB)/%.test: $(SRC)/%/*.test.c | $(TESTB)
+	$(CC) $(CFLAGS) $(NO_WARN_TESTS) -o $@ $^
+	./$@
+
+$(TESTB)/%.test: $(SRC)/%.test.c | $(TESTB)
 	$(CC) $(CFLAGS) $(NO_WARN_TESTS) -o $@ $<
 	./$@
 
@@ -66,5 +68,5 @@ $(BIN):
 $(BUILD):
 	mkdir -p $(dir $(OBJECTS)) $(dir $(DEPENDS))
 
-$(TEST_DIR):
-	mkdir -p $(TEST_DIR)/$(subst $(SRC)/,,$(dir $(TESTS)))
+$(TESTB):
+	mkdir -p $(TESTB)

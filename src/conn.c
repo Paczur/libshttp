@@ -7,7 +7,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "compose/compose.h"
 #include "conf.h"
+#include "parse/parse.h"
 
 struct pollfd sockfd = {.events = POLLIN};
 struct pollfd connfds[MAX_CONNS];
@@ -32,9 +34,9 @@ bool shttp_conn_accept_nblk(void) { return shttp_conn_accept(0); }
 
 bool shttp_conn_id_valid(shttp_conn_id id) { return id < MAX_CONNS; }
 
-shttp_conn_id shttp_conn_next(char *req, shttp_u16 *len, shttp_u16 max_len,
+shttp_conn_id shttp_conn_next(char *req, shttp_reqi *len, shttp_reqi max_len,
                               shttp_u16 timeout) {
-  shttp_s32 l;
+  ssize_t l;
   for(shttp_u8 j = 0; j < 2; j++) {
     shttp_conn_accept(timeout / 4);
     if(poll(connfds, MAX_CONNS, timeout / 4) > 0) {
@@ -51,8 +53,8 @@ shttp_conn_id shttp_conn_next(char *req, shttp_u16 *len, shttp_u16 max_len,
   return MAX_CONNS + 1;
 }
 
-shttp_conn_id shttp_conn_next_nblk(char *req, shttp_u16 *len,
-                                   shttp_u16 max_len) {
+shttp_conn_id shttp_conn_next_nblk(char *req, shttp_reqi *len,
+                                   shttp_reqi max_len) {
   for(shttp_conn_id i = 0; i < MAX_CONNS; i++) {
     if(connfds[i].fd && poll(&connfds[i], 1, 0) > 0) {
       *len = recv(connfds[i].fd, req, max_len, 0);
@@ -63,7 +65,7 @@ shttp_conn_id shttp_conn_next_nblk(char *req, shttp_u16 *len,
   return MAX_CONNS + 1;
 }
 
-void shttp_conn_send(const char *res, shttp_u16 res_len, shttp_conn_id id) {
+void shttp_conn_send(const char *res, shttp_reqi res_len, shttp_conn_id id) {
   send(connfds[id].fd, res, res_len, 0);
   shttp_conn_close(&connfds[id].fd);
   shttp_conn_accept_nblk();
