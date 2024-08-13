@@ -97,7 +97,7 @@ TEST(shttp_parse_version, 3_0) {
   assert_int_equal(SHTTP_VERSION_3_0, req.version);
 }
 
-TEST(shttp_parse_request_start_line, normal) {
+TEST(shttp_parse_start_line, normal) {
   shttp_request req;
   char msg[] = "GET / HTTP/1.1\r\n";
   assert_int_equal(sizeof(msg) - 1,
@@ -174,7 +174,7 @@ int main(void) {
     ADD(shttp_parse_path, slash),
     ADD(shttp_parse_version, 1_1),
     ADD(shttp_parse_version, 3_0),
-    ADD(shttp_parse_request_start_line, normal),
+    ADD(shttp_parse_start_line, normal),
     ADD(shttp_parse_header_host, domain),
     ADD(shttp_parse_header_host, ip_port),
     ADD(shttp_parse_request_header, normal),

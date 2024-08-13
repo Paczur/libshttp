@@ -84,26 +84,17 @@ static shttp_reqi shttp_parse_start_line(shttp_request *req, const char *msg,
   shttp_reqi off;
   shttp_reqi step;
   step = shttp_parse_method(req, msg, msg_len);
-  if(!step || !msg[step]) {
-    puts("Malformed request: Method parse error");
-    return 0;
-  }
+  if(!step || !msg[step]) return 0;
   step++;
 
   off = step;
   step = shttp_parse_path(req, msg + off, msg_len - off);
-  if(!step || !msg[step]) {
-    puts("Malformed request: Path parse error");
-    return 0;
-  }
+  if(!step || !msg[step]) return 0;
   step++;
 
   off += step;
   step = shttp_parse_version(req, msg + off, msg_len - off);
-  if(!step) {
-    puts("Malformed request: Version parse error");
-    return 0;
-  }
+  if(!step) return 0;
   if(!msg[step] || !msg[step + 1]) return 0;
   return off + step + 2;
 }

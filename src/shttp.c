@@ -24,6 +24,8 @@ bool shttp_next_nblk(shttp_request *req) { return shttp_next(req, 0); }
 
 void shttp_response_to_request(shttp_response *res, const shttp_request *req) {
   res->id = req->id;
+  res->code = 200;
+  res->version = SHTTP_VERSION_1_1;
 }
 
 void shttp_send(const shttp_response *res) {

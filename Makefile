@@ -51,12 +51,12 @@ tests: $(BIN_TESTS)
 $(BIN)/libshttp: $(OBJECTS) | $(BIN)
 	$(CC) $(CFLAGS) -MMD -MP -o $@ $^
 
-$(TESTB)/%.test: $(SRC)/%/*.test.c | $(TESTB)
-	$(CC) $(CFLAGS) $(NO_WARN_TESTS) -o $@ $^
+$(TESTB)/%.test: $(SRC)/%/*.test.c $(SRC)/%/*.c | $(TESTB)
+	$(CC) $(CFLAGS) -MMD -MP $(NO_WARN_TESTS) -o $@ $<
 	./$@
 
 $(TESTB)/%.test: $(SRC)/%.test.c | $(TESTB)
-	$(CC) $(CFLAGS) $(NO_WARN_TESTS) -o $@ $<
+	$(CC) $(CFLAGS) -MMD -MP $(NO_WARN_TESTS) -o $@ $<
 	./$@
 
 $(BUILD)/%.o: $(SRC)/%.c | $(BUILD)
