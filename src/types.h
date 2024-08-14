@@ -175,11 +175,32 @@ typedef enum shttp_code {
   SHTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED
 } shttp_code;
 
+typedef enum shttp_accept_encoding {
+  SHTTP_ACCEPT_ENCODING_STAR = 0,
+  SHTTP_ACCEPT_ENCODING_GZIP = 1,
+  SHTTP_ACCEPT_ENCODING_COMPRESS = 2,
+  SHTTP_ACCEPT_ENCODING_DEFLATE = 4,
+  SHTTP_ACCEPT_ENCODING_BR = 8,
+  SHTTP_ACCEPT_ENCODING_ZSTD = 16,
+  SHTTP_ACCEPT_ENCODING_IDENTITY = 32
+} shttp_accept_encoding;
+
 typedef struct shttp_request {
   bool has_host : 1;
 
   shttp_version version : 3;
   shttp_method method : 4;
+
+  // possibly compress further from BCD
+  shttp_u8 accept_encoding_weight_star : 4;
+  shttp_u8 accept_encoding_weight_gzip : 4;
+  shttp_u8 accept_encoding_weight_compress : 4;
+  shttp_u8 accept_encoding_weight_deflate : 4;
+  shttp_u8 accept_encoding_weight_br : 4;
+  shttp_u8 accept_encoding_weight_zstd : 4;
+  shttp_u8 accept_encoding_weight_identity : 4;
+  shttp_accept_encoding accept_encoding : 6;
+
   shttp_conn_id id;  // 16
 
   shttp_u16 host_port;

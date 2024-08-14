@@ -125,6 +125,14 @@ TEST(shttp_parse_header_host, ip_port) {
   assert_int_equal(20, req.host_port);
 }
 
+TEST(shttp_parse_header_accept_encoding, gzip) {
+  char msg[] = "Accept-Encoding: gzip\r\n";
+  shttp_request req;
+  assert_int_equal(sizeof(msg) - 1,
+                   shttp_parse_header_accept_encoding(&req, msg, sizeof(msg)));
+  assert_int_equal(SHTTP_ACCEPT_ENCODING_GZIP, req.accept_encoding);
+}
+
 TEST(shttp_parse_request_header, normal) {
   shttp_request req;
   char msg[] = "Host: google.com\r\n\r\n";
@@ -177,6 +185,7 @@ int main(void) {
     ADD(shttp_parse_start_line, normal),
     ADD(shttp_parse_header_host, domain),
     ADD(shttp_parse_header_host, ip_port),
+    ADD(shttp_parse_header_accept_encoding, gzip),
     ADD(shttp_parse_request_header, normal),
     ADD(shttp_parse_request, start_line),
     ADD(shttp_parse_request, header),
