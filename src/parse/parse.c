@@ -8,38 +8,15 @@
 #include "parse_header.h"
 #include "parse_token.h"
 
-static shttp_method shttp_str2method(const char *buff) {
-#define X(x)                                                     \
-  else if(!shttp_parse_token_cmp(SHTTP_STRINGIFY(x), buff, 8)) { \
-    return SHTTP_METHOD_##x;                                     \
-  }
-  if(0) {
-  }
-  SHTTP_X_METHODS
-#undef X
-  return SHTTP_METHOD_LENGTH;
-}
-
-static void shttp_method2str(char *buff, shttp_method m) {
-#define X(x)                              \
-  case SHTTP_METHOD_##x:                  \
-    strncpy(buff, SHTTP_STRINGIFY(x), 8); \
-    break;
-  switch(m) {
-    SHTTP_X_METHODS
-  default:
-    break;
-  }
-#undef X
-}
+#define SHTTP_CMP(m, t) shttp_parse_token_cmp((m), (t), sizeof(t) - 1)
 
 static shttp_reqi shttp_parse_method(shttp_request *req, const char *msg,
                                      shttp_reqi msg_len) {
-#define X(x)                                                                 \
-  else if(shttp_parse_token_cmp(SHTTP_STRINGIFY(x), msg,                     \
-                                MIN(sizeof(SHTTP_STRINGIFY(x)), msg_len))) { \
-    req->method = SHTTP_METHOD_##x;                                          \
-    return sizeof(SHTTP_STRINGIFY(x)) - 1;                                   \
+#define X(x)                                               \
+  else if(SHTTP_CMP(msg, SHTTP_STRINGIFY(x))) {            \
+    if(msg_len < sizeof(SHTTP_STRINGIFY(x)) - 1) return 0; \
+    req->method = SHTTP_METHOD_##x;                        \
+    return sizeof(SHTTP_STRINGIFY(x)) - 1;                 \
   }
 
   req->method = SHTTP_METHOD_LENGTH;
@@ -53,24 +30,22 @@ static shttp_reqi shttp_parse_method(shttp_request *req, const char *msg,
 
 static shttp_reqi shttp_parse_path(shttp_request *req, const char *msg,
                                    shttp_reqi msg_len) {
-  return shttp_parse_token_cpy(req->path, msg, MIN(sizeof(req->path), msg_len));
+  return shttp_parse_token_cpy_until(req->path, msg, msg_len, ' ');
 }
 
 static shttp_reqi shttp_parse_version(shttp_request *req, const char *msg,
                                       shttp_reqi msg_len) {
-  if(strncmp("HTTP/", msg, MIN(sizeof("HTTP/") - 1, msg_len)) ||
-     !msg[sizeof("HTTP/") - 1])
-    return 0;
+  if(msg_len < sizeof("HTTP/1.0") - 1 || SHTTP_CMP("HTTP/", msg)) return 0;
   msg += sizeof("HTTP/") - 1;
   msg_len -= sizeof("HTTP/") - 1;
 
-  if(shttp_parse_token_cmp("1.0", msg, MIN(sizeof("1.0"), msg_len))) {
+  if(SHTTP_CMP(msg, "1.0")) {
     req->version = SHTTP_VERSION_1_0;
-  } else if(shttp_parse_token_cmp("1.1", msg, MIN(sizeof("1.1"), msg_len))) {
+  } else if(SHTTP_CMP(msg, "1.1")) {
     req->version = SHTTP_VERSION_1_1;
-  } else if(shttp_parse_token_cmp("2.0", msg, MIN(sizeof("2.0"), msg_len))) {
+  } else if(SHTTP_CMP(msg, "2.0")) {
     req->version = SHTTP_VERSION_2_0;
-  } else if(shttp_parse_token_cmp("3.0", msg, MIN(sizeof("3.0"), msg_len))) {
+  } else if(SHTTP_CMP(msg, "3.0")) {
     req->version = SHTTP_VERSION_3_0;
   } else {
     req->version = SHTTP_VERSION_LENGTH;

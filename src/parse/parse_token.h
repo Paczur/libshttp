@@ -9,6 +9,9 @@ shttp_reqi shttp_parse_token_number(shttp_u16 *n, const char *msg,
 shttp_reqi shttp_parse_token_cpy_until(char *token, const char *msg,
                                        shttp_reqi len, char end);
 
+shttp_reqi shttp_parse_token_cpy_until_or(char *token, const char *msg,
+                                          shttp_reqi len, const char *end);
+
 bool shttp_parse_token_cmp_until(const char *token, const char *msg,
                                  shttp_reqi len, char end);
 

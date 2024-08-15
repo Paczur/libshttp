@@ -89,6 +89,15 @@ typedef int_least64_t shttp_s64;
   X(NOT_EXTENDED)                    \
   X(NETWORK_AUTHENTICATION_REQUIRED)
 
+#define SHTTP_X_ACCEPT_ENCODING \
+  X(STAR)                       \
+  X(GZIP)                       \
+  X(COMPRESS)                   \
+  X(DEFLATE)                    \
+  X(BR)                         \
+  X(ZSTD)                       \
+  X(IDENTITY)
+
 typedef shttp_u8 shttp_conn_id;
 
 typedef enum shttp_method {
