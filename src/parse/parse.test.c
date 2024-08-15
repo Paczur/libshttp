@@ -74,6 +74,15 @@ TEST(shttp_parse_start_line, normal) {
   assert_int_equal(SHTTP_VERSION_1_1, req.version);
 }
 
+TEST(shttp_parse_token_value_weighted, single) {
+  char msg[] = "test\r\n";
+  shttp_value_weighted val;
+  assert_int_equal(sizeof(msg) - 1,
+                   shttp_parse_token_value_weighted(&val, 1, msg, sizeof(msg)));
+  assert_string_equal("test", val.value);
+  assert_int_equal(SHTTP_WEIGHT_1_0, val.weight);
+}
+
 TEST(shttp_parse_header_host, domain) {
   shttp_request req;
   char msg[] = "Host: google.com\r\n";
@@ -97,7 +106,8 @@ TEST(shttp_parse_header_accept_encoding, gzip) {
   shttp_request req;
   assert_int_equal(sizeof(msg) - 1, shttp_parse_header_accept_encoding(
                                       &req, msg, sizeof(msg) - 1));
-  assert_int_equal(SHTTP_ACCEPT_ENCODING_GZIP, req.accept_encoding);
+  assert_string_equal("gzip", req.accept_encoding[0].value);
+  assert_int_equal(SHTTP_WEIGHT_1_0, req.accept_encoding[0].weight);
 }
 
 TEST(shttp_parse_header_accept_encoding, multiple) {
@@ -105,9 +115,12 @@ TEST(shttp_parse_header_accept_encoding, multiple) {
   shttp_request req;
   assert_int_equal(sizeof(msg) - 1, shttp_parse_header_accept_encoding(
                                       &req, msg, sizeof(msg) - 1));
-  assert_int_equal(SHTTP_ACCEPT_ENCODING_GZIP | SHTTP_ACCEPT_ENCODING_IDENTITY |
-                     SHTTP_ACCEPT_ENCODING_DEFLATE,
-                   req.accept_encoding);
+  assert_string_equal("gzip", req.accept_encoding[0].value);
+  assert_string_equal("identity", req.accept_encoding[1].value);
+  assert_string_equal("deflate", req.accept_encoding[2].value);
+  assert_int_equal(SHTTP_WEIGHT_1_0, req.accept_encoding[0].weight);
+  assert_int_equal(SHTTP_WEIGHT_1_0, req.accept_encoding[1].weight);
+  assert_int_equal(SHTTP_WEIGHT_1_0, req.accept_encoding[2].weight);
 }
 
 TEST(shttp_parse_header_accept_encoding, multiple_weight) {
@@ -115,12 +128,12 @@ TEST(shttp_parse_header_accept_encoding, multiple_weight) {
   shttp_request req;
   assert_int_equal(sizeof(msg) - 1, shttp_parse_header_accept_encoding(
                                       &req, msg, sizeof(msg) - 1));
-  assert_int_equal(SHTTP_ACCEPT_ENCODING_GZIP | SHTTP_ACCEPT_ENCODING_IDENTITY |
-                     SHTTP_ACCEPT_ENCODING_DEFLATE,
-                   req.accept_encoding);
-  assert_int_equal(2, req.accept_encoding_weight_gzip);
-  assert_int_equal(0, req.accept_encoding_weight_identity);
-  assert_int_equal(1, req.accept_encoding_weight_deflate);
+  assert_string_equal("gzip", req.accept_encoding[0].value);
+  assert_string_equal("identity", req.accept_encoding[1].value);
+  assert_string_equal("deflate", req.accept_encoding[2].value);
+  assert_int_equal(SHTTP_WEIGHT_000 + 200, req.accept_encoding[0].weight);
+  assert_int_equal(SHTTP_WEIGHT_1_0, req.accept_encoding[1].weight);
+  assert_int_equal(SHTTP_WEIGHT_000 + 100, req.accept_encoding[2].weight);
 }
 
 TEST(shttp_parse_request_header, normal) {
@@ -162,6 +175,7 @@ int main(void) {
     ADD(shttp_parse_token_number, normal),
     ADD(shttp_parse_token_cpy, null_end),
     ADD(shttp_parse_token_cmp, null_end),
+    ADD(shttp_parse_token_value_weighted, single),
     ADD(shttp_parse_method, get),
     ADD(shttp_parse_method, post),
     ADD(shttp_parse_path, slash),

@@ -1,5 +1,9 @@
 #include "parse_token.h"
 
+#include <stdio.h>
+
+#include "parse_macros.h"
+
 shttp_reqi shttp_parse_token_number(shttp_u16 *n, const char *msg,
                                     shttp_reqi len) {
   shttp_reqi res = 0;
@@ -69,4 +73,42 @@ bool shttp_parse_token_cmp_until(const char *token, const char *msg,
     if(msg[i] != token[i]) return false;
   }
   return true;
+}
+
+shttp_reqi shttp_parse_token_value_weighted(shttp_value_weighted *vals,
+                                            shttp_u8 vals_length,
+                                            const char *msg,
+                                            shttp_reqi msg_len) {
+  shttp_reqi off = 0;
+  shttp_u8 i = 0;
+  shttp_u16 n;
+  shttp_reqi step;
+  while(off < msg_len && msg[off] != '\r') {
+    if(msg[off] == ' ' || msg[off] == ',') {
+      off++;
+      continue;
+    }
+    off += shttp_parse_token_cpy_until_or(
+      vals[i].value, msg + off,
+      MIN(LENGTH(vals[0].value), (shttp_reqi)(msg_len - off)), ",;\r");
+    if(msg[off] == ';' && SHTTP_CMP(msg + off, ";q=0.")) {
+      off += sizeof(";q=0.") - 1;
+      step = shttp_parse_token_number(&n, msg + off, 3);
+      for(shttp_reqi j = 0; j < 3 - step; j++) {
+        n *= 10;
+      }
+      vals[i].weight = SHTTP_WEIGHT_000 + n;
+      off += step;
+    }
+    i++;
+    if(i >= vals_length) break;
+    while(msg[off] && msg[off] != ',' && msg[off] != '\r') {
+      off++;
+    }
+  }
+  while(msg[off] != '\r') {
+    off++;
+  }
+  if(msg[off + 1] != '\n') return 0;
+  return off + sizeof("\r\n") - 1;
 }

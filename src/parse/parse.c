@@ -4,11 +4,9 @@
 #include <string.h>
 
 #include "../conf.h"
-#include "../macros.h"
 #include "parse_header.h"
+#include "parse_macros.h"
 #include "parse_token.h"
-
-#define SHTTP_CMP(m, t) shttp_parse_token_cmp((m), (t), sizeof(t) - 1)
 
 static shttp_reqi shttp_parse_method(shttp_request *req, const char *msg,
                                      shttp_reqi msg_len) {

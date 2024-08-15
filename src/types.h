@@ -89,15 +89,6 @@ typedef int_least64_t shttp_s64;
   X(NOT_EXTENDED)                    \
   X(NETWORK_AUTHENTICATION_REQUIRED)
 
-#define SHTTP_X_ACCEPT_ENCODING \
-  X(STAR)                       \
-  X(GZIP)                       \
-  X(COMPRESS)                   \
-  X(DEFLATE)                    \
-  X(BR)                         \
-  X(ZSTD)                       \
-  X(IDENTITY)
-
 typedef shttp_u8 shttp_conn_id;
 
 typedef enum shttp_method {
@@ -184,15 +175,16 @@ typedef enum shttp_code {
   SHTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED
 } shttp_code;
 
-typedef enum shttp_accept_encoding {
-  SHTTP_ACCEPT_ENCODING_STAR = 0,
-  SHTTP_ACCEPT_ENCODING_GZIP = 1,
-  SHTTP_ACCEPT_ENCODING_COMPRESS = 2,
-  SHTTP_ACCEPT_ENCODING_DEFLATE = 4,
-  SHTTP_ACCEPT_ENCODING_BR = 8,
-  SHTTP_ACCEPT_ENCODING_ZSTD = 16,
-  SHTTP_ACCEPT_ENCODING_IDENTITY = 32
-} shttp_accept_encoding;
+typedef enum shttp_weight {
+  SHTTP_WEIGHT_1_0,
+  SHTTP_WEIGHT_000,
+  SHTTP_WEIGHT_999 = SHTTP_WEIGHT_000 + 999
+} shttp_weight;
+
+typedef struct shttp_value_weighted {
+  char value[STRING_VALUE_LENGTH];
+  shttp_u16 weight : 10;
+} shttp_value_weighted;
 
 typedef struct shttp_request {
   bool has_host : 1;
@@ -200,23 +192,15 @@ typedef struct shttp_request {
   shttp_version version : 3;
   shttp_method method : 4;
 
-  // possibly compress further from BCD
-  shttp_u8 accept_encoding_weight_star : 4;
-  shttp_u8 accept_encoding_weight_gzip : 4;
-  shttp_u8 accept_encoding_weight_compress : 4;
-  shttp_u8 accept_encoding_weight_deflate : 4;
-  shttp_u8 accept_encoding_weight_br : 4;
-  shttp_u8 accept_encoding_weight_zstd : 4;
-  shttp_u8 accept_encoding_weight_identity : 4;
-  shttp_accept_encoding accept_encoding : 6;
-
   shttp_conn_id id;  // 16
 
   shttp_u16 host_port;
-  char host_domain[50];
+  char host_domain[DOMAIN_LENGTH];
 
-  char path[128];
-} __attribute__((packed)) shttp_request;
+  shttp_value_weighted accept_encoding[VALUES_PER_HEADER];
+
+  char path[PATH_LENGTH];
+} shttp_request;
 
 typedef struct shttp_response {
   shttp_conn_id id;
