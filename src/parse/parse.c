@@ -67,9 +67,12 @@ static shttp_reqi shttp_parse_start_line(shttp_request *req, const char *msg,
 
   off += step;
   step = shttp_parse_version(req, msg + off, msg_len - off);
-  if(!step) return 0;
-  if(!msg[step] || !msg[step + 1]) return 0;
-  return off + step + 2;
+  if(!step || !msg[step]) return 0;
+
+  off += step;
+  if(msg[off] == '\r') off++;
+  if(msg[off] != '\n') return 0;
+  return off + 1;
 }
 
 shttp_reqi shttp_parse_request(shttp_request *req, const char *msg,

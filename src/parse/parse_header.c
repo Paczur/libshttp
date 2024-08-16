@@ -28,29 +28,27 @@ static shttp_reqi shttp_parse_header_host(shttp_request *req, const char *msg,
   off = sizeof("Host: ") - 1;
 
   step = shttp_parse_token_cpy_until_or(req->host_domain, msg + off,
-                                        msg_len - off, ":\r");
+                                        msg_len - off, ":\r\n");
   if(!step) return 0;
-  if(msg[off + step] != '\r') {
+  if(msg[off + step] != '\r' && msg[off + step] != '\n') {
     if(msg[off + step] != ':' || !msg[off + step + 1]) return 0;
     step++;
     off += step;
     step = shttp_parse_token_number(&port, msg + off, msg_len - off);
     req->host_port = port;
-    if(msg[off + step + 1] != '\n') return 0;
-    return off + step + 2;
+    if(msg[off + step] == '\r') step++;
+    if(msg[off + step] != '\n') return 0;
+    return off + step + 1;
   }
   req->host_port = 80;
-  if(msg[off + step + 1] != '\n') return 0;
-  return off + step + 2;
+  if(msg[off + step] == '\r') step++;
+  if(msg[off + step] != '\n') return 0;
+  return off + step + 1;
 }
 
-static shttp_reqi shttp_parse_header_values_weighted(shttp_value_weighted *vals,
-                                                     shttp_u8 vals_len,
-
-                                                     const char *msg,
-                                                     shttp_reqi msg_len,
-                                                     const char *token,
-                                                     shttp_reqi token_len) {
+static shttp_reqi shttp_parse_header_values_weighted(
+  shttp_value_weighted *vals, shttp_u8 vals_len, const char *msg,
+  shttp_reqi msg_len, const char *token, shttp_reqi token_len) {
   shttp_reqi step;
   if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
     return 0;
@@ -115,20 +113,18 @@ shttp_reqi shttp_parse_header(shttp_request *req, const char *msg,
                               shttp_reqi msg_len) {
   shttp_reqi step;
   shttp_reqi off = 0;
-  while(msg[off] != '\r' && msg[off + 1] != '\n') {
+  while(msg[off] != '\r' && msg[off] != '\n') {
     if(SHTTP_PARSE_HEADER(host)
          SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED SHTTP_X_REQUEST_HEADERS_VALUES
            SHTTP_X_REQUEST_HEADERS_VALUE) {
       off += step;
-      if(!msg[off] || !msg[off + 1]) {
-        puts("Malformed request: Header parse error");
-        return 0;
-      }
     } else {
-      while(msg[off] != '\r') off++;
-      off += 2;
+      while(msg[off] != '\n') off++;
+      off++;
     }
   }
-  return off + 2;
+  if(msg[off] == '\r') off++;
+  if(msg[off] != '\n') return 0;
+  return off + 1;
 }
 #undef X

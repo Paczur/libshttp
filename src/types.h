@@ -91,16 +91,16 @@ typedef int_least64_t shttp_s64;
   X(NOT_EXTENDED)                    \
   X(NETWORK_AUTHENTICATION_REQUIRED)
 
-#define SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED \
-  X(accept_encoding, "Accept-Encoding: ")       \
-  X(accept, "Accept: ")                         \
-  X(accept_charset, "Accept-Charset: ")         \
-  X(accept_language, "Accept-Language: ")       \
-  X(a_im, "A-IM: ")
+#define SHTTP_X_REQUEST_HEADERS_VALUE X(user_agent, "User-Agent: ")
 
 #define SHTTP_X_REQUEST_HEADERS_VALUES X(connection, "Connection: ")
 
-#define SHTTP_X_REQUEST_HEADERS_VALUE X(user_agent, "User-Agent: ")
+#define SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED \
+  X(a_im, "A-IM: ")                             \
+  X(accept, "Accept: ")                         \
+  X(accept_charset, "Accept-Charset: ")         \
+  X(accept_encoding, "Accept-Encoding: ")       \
+  X(accept_language, "Accept-Language: ")
 
 typedef shttp_u8 shttp_conn_id;
 
