@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "conf.h"
+
 typedef uint_least8_t shttp_u8;
 typedef uint_least16_t shttp_u16;
 typedef uint_least32_t shttp_u32;
@@ -88,6 +90,17 @@ typedef int_least64_t shttp_s64;
   X(LOOP_DETECTED)                   \
   X(NOT_EXTENDED)                    \
   X(NETWORK_AUTHENTICATION_REQUIRED)
+
+#define SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED \
+  X(accept_encoding, "Accept-Encoding: ")       \
+  X(accept, "Accept: ")                         \
+  X(accept_charset, "Accept-Charset: ")         \
+  X(accept_language, "Accept-Language: ")       \
+  X(a_im, "A-IM: ")
+
+#define SHTTP_X_REQUEST_HEADERS_VALUES X(connection, "Connection: ")
+
+#define SHTTP_X_REQUEST_HEADERS_VALUE X(user_agent, "User-Agent: ")
 
 typedef shttp_u8 shttp_conn_id;
 
@@ -186,19 +199,25 @@ typedef struct shttp_value_weighted {
   shttp_u16 weight : 10;
 } shttp_value_weighted;
 
-typedef struct shttp_request {
-  bool has_host : 1;
+typedef struct shttp_value {
+  char value[STRING_VALUE_LENGTH];
+} shttp_value;
 
+typedef struct shttp_request {
   shttp_version version : 3;
   shttp_method method : 4;
-
   shttp_conn_id id;  // 16
-
   shttp_u16 host_port;
   char host_domain[DOMAIN_LENGTH];
-
-  shttp_value_weighted accept_encoding[VALUES_PER_HEADER];
-
+#define X(name, token) shttp_value name;
+  SHTTP_X_REQUEST_HEADERS_VALUE
+#undef X
+#define X(name, token) shttp_value name[VALUES_PER_HEADER];
+  SHTTP_X_REQUEST_HEADERS_VALUES
+#undef X
+#define X(name, token) shttp_value_weighted name[VALUES_PER_HEADER];
+  SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED
+#undef X
   char path[PATH_LENGTH];
 } shttp_request;
 

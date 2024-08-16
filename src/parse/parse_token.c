@@ -75,10 +75,9 @@ bool shttp_parse_token_cmp_until(const char *token, const char *msg,
   return true;
 }
 
-shttp_reqi shttp_parse_token_value_weighted(shttp_value_weighted *vals,
-                                            shttp_u8 vals_length,
-                                            const char *msg,
-                                            shttp_reqi msg_len) {
+shttp_reqi shttp_parse_token_values_weighted(shttp_value_weighted *vals,
+                                             shttp_u8 vals_len, const char *msg,
+                                             shttp_reqi msg_len) {
   shttp_reqi off = 0;
   shttp_u8 i = 0;
   shttp_u16 n;
@@ -88,9 +87,11 @@ shttp_reqi shttp_parse_token_value_weighted(shttp_value_weighted *vals,
       off++;
       continue;
     }
-    off += shttp_parse_token_cpy_until_or(
+    step = shttp_parse_token_cpy_until_or(
       vals[i].value, msg + off,
       MIN(LENGTH(vals[0].value), (shttp_reqi)(msg_len - off)), ",;\r");
+    if(!step) return 0;
+    off += step;
     if(msg[off] == ';' && SHTTP_CMP(msg + off, ";q=0.")) {
       off += sizeof(";q=0.") - 1;
       step = shttp_parse_token_number(&n, msg + off, 3);
@@ -101,7 +102,7 @@ shttp_reqi shttp_parse_token_value_weighted(shttp_value_weighted *vals,
       off += step;
     }
     i++;
-    if(i >= vals_length) break;
+    if(i >= vals_len) break;
     while(msg[off] && msg[off] != ',' && msg[off] != '\r') {
       off++;
     }
@@ -109,6 +110,44 @@ shttp_reqi shttp_parse_token_value_weighted(shttp_value_weighted *vals,
   while(msg[off] != '\r') {
     off++;
   }
+  if(msg[off + 1] != '\n') return 0;
+  return off + sizeof("\r\n") - 1;
+}
+
+shttp_reqi shttp_parse_token_values(shttp_value *vals, shttp_u8 vals_len,
+                                    const char *msg, shttp_reqi msg_len) {
+  shttp_reqi off = 0;
+  shttp_u8 i = 0;
+  shttp_reqi step;
+  while(off < msg_len && msg[off] != '\r') {
+    if(msg[off] == ' ' || msg[off] == ',') {
+      off++;
+      continue;
+    }
+    step = shttp_parse_token_cpy_until_or(
+      vals[i].value, msg + off,
+      MIN(LENGTH(vals[0].value), (shttp_reqi)(msg_len - off)), ",\r");
+    if(!step) return 0;
+    off += step;
+    i++;
+    if(i >= vals_len) break;
+  }
+  while(msg[off] != '\r') {
+    off++;
+  }
+  if(msg[off + 1] != '\n') return 0;
+  return off + sizeof("\r\n") - 1;
+}
+
+shttp_reqi shttp_parse_token_value(shttp_value *val, const char *msg,
+                                   shttp_reqi msg_len) {
+  shttp_reqi off = 0;
+  shttp_reqi step;
+  step = shttp_parse_token_cpy_until(
+    val->value, msg + off, MIN(LENGTH(val->value), (shttp_reqi)(msg_len - off)),
+    '\r');
+  if(!step) return 0;
+  off += step;
   if(msg[off + 1] != '\n') return 0;
   return off + sizeof("\r\n") - 1;
 }
