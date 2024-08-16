@@ -19,6 +19,68 @@
 #define SHTTP_PARSE_HEADER(name) \
   (step = shttp_parse_header_##name(req, msg + off, msg_len - off))
 
+#define X(name, token)                                            \
+  static shttp_reqi shttp_parse_header_##name(                    \
+    shttp_request *req, const char *msg, shttp_reqi msg_len) {    \
+    return SHTTP_VALUES_WEIGHTED(req->name, msg, msg_len, token); \
+  }
+SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED
+#undef X
+
+#define X(name, token)                                         \
+  static shttp_reqi shttp_parse_header_##name(                 \
+    shttp_request *req, const char *msg, shttp_reqi msg_len) { \
+    return SHTTP_VALUES(req->name, msg, msg_len, token);       \
+  }
+SHTTP_X_REQUEST_HEADERS_VALUES
+#undef X
+
+#define X(name, token)                                         \
+  static shttp_reqi shttp_parse_header_##name(                 \
+    shttp_request *req, const char *msg, shttp_reqi msg_len) { \
+    return SHTTP_VALUE(&req->name, msg, msg_len, token);       \
+  }
+SHTTP_X_REQUEST_HEADERS_VALUE
+#undef X
+
+static shttp_reqi shttp_parse_header_value(shttp_value *val, const char *msg,
+                                           shttp_reqi msg_len,
+                                           const char *token,
+                                           shttp_reqi token_len) {
+  shttp_reqi step;
+  if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
+    return 0;
+  step = shttp_parse_token_value(val, msg + token_len, msg_len - token_len);
+  if(!step) return 0;
+  return token_len + step;
+}
+
+static shttp_reqi shttp_parse_header_values(shttp_value *vals,
+                                            shttp_u8 vals_len, const char *msg,
+                                            shttp_reqi msg_len,
+                                            const char *token,
+                                            shttp_reqi token_len) {
+  shttp_reqi step;
+  if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
+    return 0;
+  step = shttp_parse_token_values(vals, vals_len, msg + token_len,
+                                  msg_len - token_len);
+  if(!step) return 0;
+  return token_len + step;
+}
+
+static shttp_reqi shttp_parse_header_values_weighted(
+  shttp_value_weighted *vals, shttp_u8 vals_len, const char *msg,
+  shttp_reqi msg_len, const char *token, shttp_reqi token_len) {
+  shttp_reqi step;
+  if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
+    return 0;
+  step = shttp_parse_token_values_weighted(vals, vals_len, msg + token_len,
+                                           msg_len - token_len);
+  if(!step) return 0;
+  return token_len + step;
+}
+
 static shttp_reqi shttp_parse_header_host(shttp_request *req, const char *msg,
                                           shttp_reqi msg_len) {
   shttp_reqi off;
@@ -45,68 +107,6 @@ static shttp_reqi shttp_parse_header_host(shttp_request *req, const char *msg,
   if(msg[off + step] != '\n') return 0;
   return off + step + 1;
 }
-
-static shttp_reqi shttp_parse_header_values_weighted(
-  shttp_value_weighted *vals, shttp_u8 vals_len, const char *msg,
-  shttp_reqi msg_len, const char *token, shttp_reqi token_len) {
-  shttp_reqi step;
-  if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
-    return 0;
-  step = shttp_parse_token_values_weighted(vals, vals_len, msg + token_len,
-                                           msg_len - token_len);
-  if(!step) return 0;
-  return token_len + step;
-}
-
-static shttp_reqi shttp_parse_header_values(shttp_value *vals,
-                                            shttp_u8 vals_len, const char *msg,
-                                            shttp_reqi msg_len,
-                                            const char *token,
-                                            shttp_reqi token_len) {
-  shttp_reqi step;
-  if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
-    return 0;
-  step = shttp_parse_token_values(vals, vals_len, msg + token_len,
-                                  msg_len - token_len);
-  if(!step) return 0;
-  return token_len + step;
-}
-
-static shttp_reqi shttp_parse_header_value(shttp_value *val, const char *msg,
-                                           shttp_reqi msg_len,
-                                           const char *token,
-                                           shttp_reqi token_len) {
-  shttp_reqi step;
-  if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
-    return 0;
-  step = shttp_parse_token_value(val, msg + token_len, msg_len - token_len);
-  if(!step) return 0;
-  return token_len + step;
-}
-
-#define X(name, token)                                            \
-  static shttp_reqi shttp_parse_header_##name(                    \
-    shttp_request *req, const char *msg, shttp_reqi msg_len) {    \
-    return SHTTP_VALUES_WEIGHTED(req->name, msg, msg_len, token); \
-  }
-SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED
-#undef X
-
-#define X(name, token)                                         \
-  static shttp_reqi shttp_parse_header_##name(                 \
-    shttp_request *req, const char *msg, shttp_reqi msg_len) { \
-    return SHTTP_VALUES(req->name, msg, msg_len, token);       \
-  }
-SHTTP_X_REQUEST_HEADERS_VALUES
-#undef X
-
-#define X(name, token)                                         \
-  static shttp_reqi shttp_parse_header_##name(                 \
-    shttp_request *req, const char *msg, shttp_reqi msg_len) { \
-    return SHTTP_VALUE(&req->name, msg, msg_len, token);       \
-  }
-SHTTP_X_REQUEST_HEADERS_VALUE
-#undef X
 
 #define X(name, token) || SHTTP_PARSE_HEADER(name)
 shttp_reqi shttp_parse_header(shttp_request *req, const char *msg,
