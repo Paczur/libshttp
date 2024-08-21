@@ -138,6 +138,19 @@ TEST(shttp_parse_token_values_weighted, multiple_weighted_LF) {
   assert_int_equal(SHTTP_WEIGHT_000 + 10, vals[1].weight);
 }
 
+TEST(shttp_parse_token_datetime, short_epoch_start) {
+  shttp_datetime datetime;
+  char msg[] = "01 Jan 1970 01:02 UT";
+  assert_int_equal(sizeof(msg) - 1,
+                   shttp_parse_token_datetime(&datetime, msg, sizeof(msg)));
+  assert_int_equal(1, datetime.day);
+  assert_int_equal(SHTTP_MONTH_JAN, datetime.month);
+  assert_int_equal(1970, datetime.year);
+  assert_int_equal(1, datetime.hours);
+  assert_int_equal(2, datetime.minutes);
+  assert_int_equal(SHTTP_TIMEZONE_UT, datetime.timezone);
+}
+
 TEST(shttp_parse_method, get) {
   shttp_request req;
   char msg[] = "GET";
@@ -323,6 +336,7 @@ int main(void) {
     ADD(shttp_parse_token_values_weighted, single_weighted_LF),
     ADD(shttp_parse_token_values_weighted, multiple_weighted),
     ADD(shttp_parse_token_values_weighted, multiple_weighted_LF),
+    ADD(shttp_parse_token_datetime, short_epoch_start),
     ADD(shttp_parse_method, get),
     ADD(shttp_parse_method, post),
     ADD(shttp_parse_path, slash),

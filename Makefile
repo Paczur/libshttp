@@ -4,7 +4,8 @@ TESTB=bin/tests
 DIRS=$(BIN) $(BUILD)
 SRC=src
 
-WARN=-Wall -Wextra -Wvla
+NO_WARN=-Wno-packed-bitfield-compat
+WARN=-Wall -Wextra -Wvla $(NO_WARN)
 NO_WARN_TESTS=-Wno-unused-parameter -Wno-incompatible-pointer-types -Wno-unused-but-set-parameter
 NO_WARN_DEBUG=-Wno-unused-function
 MEMORY_DEBUG=-fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract

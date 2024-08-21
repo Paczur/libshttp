@@ -30,4 +30,7 @@ shttp_reqi shttp_parse_token_values(shttp_value *vals, shttp_u8 vals_length,
 shttp_reqi shttp_parse_token_value(shttp_value *val, const char *msg,
                                    shttp_reqi msg_len);
 
+shttp_reqi shttp_parse_token_datetime(shttp_datetime *datetime, const char *msg,
+                                      shttp_reqi msg_len);
+
 #endif

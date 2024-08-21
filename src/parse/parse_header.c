@@ -19,30 +19,6 @@
 #define SHTTP_PARSE_HEADER(name) \
   (step = shttp_parse_header_##name(req, msg + off, msg_len - off))
 
-#define X(name, token)                                            \
-  static shttp_reqi shttp_parse_header_##name(                    \
-    shttp_request *req, const char *msg, shttp_reqi msg_len) {    \
-    return SHTTP_VALUES_WEIGHTED(req->name, msg, msg_len, token); \
-  }
-SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED
-#undef X
-
-#define X(name, token)                                         \
-  static shttp_reqi shttp_parse_header_##name(                 \
-    shttp_request *req, const char *msg, shttp_reqi msg_len) { \
-    return SHTTP_VALUES(req->name, msg, msg_len, token);       \
-  }
-SHTTP_X_REQUEST_HEADERS_VALUES
-#undef X
-
-#define X(name, token)                                         \
-  static shttp_reqi shttp_parse_header_##name(                 \
-    shttp_request *req, const char *msg, shttp_reqi msg_len) { \
-    return SHTTP_VALUE(&req->name, msg, msg_len, token);       \
-  }
-SHTTP_X_REQUEST_HEADERS_VALUE
-#undef X
-
 static shttp_reqi shttp_parse_header_value(shttp_value *val, const char *msg,
                                            shttp_reqi msg_len,
                                            const char *token,
@@ -80,6 +56,30 @@ static shttp_reqi shttp_parse_header_values_weighted(
   if(!step) return 0;
   return token_len + step;
 }
+
+#define X(name, token)                                            \
+  static shttp_reqi shttp_parse_header_##name(                    \
+    shttp_request *req, const char *msg, shttp_reqi msg_len) {    \
+    return SHTTP_VALUES_WEIGHTED(req->name, msg, msg_len, token); \
+  }
+SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED
+#undef X
+
+#define X(name, token)                                         \
+  static shttp_reqi shttp_parse_header_##name(                 \
+    shttp_request *req, const char *msg, shttp_reqi msg_len) { \
+    return SHTTP_VALUES(req->name, msg, msg_len, token);       \
+  }
+SHTTP_X_REQUEST_HEADERS_VALUES
+#undef X
+
+#define X(name, token)                                         \
+  static shttp_reqi shttp_parse_header_##name(                 \
+    shttp_request *req, const char *msg, shttp_reqi msg_len) { \
+    return SHTTP_VALUE(&req->name, msg, msg_len, token);       \
+  }
+SHTTP_X_REQUEST_HEADERS_VALUE
+#undef X
 
 static shttp_reqi shttp_parse_header_host(shttp_request *req, const char *msg,
                                           shttp_reqi msg_len) {

@@ -10,5 +10,6 @@
 #define STRING_VALUE_LENGTH 22
 #define DOMAIN_LENGTH 50
 #define PATH_LENGTH 128
+#define PACK_STRUCTS __attribute__((__packed__))
 
 #endif

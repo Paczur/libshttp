@@ -145,3 +145,15 @@ shttp_reqi shttp_parse_token_values_weighted(shttp_value_weighted *vals,
   if(msg[off] != '\n') return 0;
   return off + 1;
 }
+
+shttp_reqi shttp_parse_token_datetime(shttp_datetime *datetime, const char *msg,
+                                      shttp_reqi msg_len) {
+  shttp_u16 n;
+  shttp_reqi step;
+  shttp_reqi off = 0;
+  off = shttp_parse_token_number(&n, msg, msg_len);
+  if(!off || msg[off] != ' ') return 0;
+  datetime->day = n;
+  off++;
+  return off;
+}
