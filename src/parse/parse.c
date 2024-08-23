@@ -10,11 +10,11 @@
 
 static shttp_reqi shttp_parse_method(shttp_request *req, const char *msg,
                                      shttp_reqi msg_len) {
-#define X(x)                                               \
-  else if(SHTTP_CMP(msg, SHTTP_STRINGIFY(x))) {            \
-    if(msg_len < sizeof(SHTTP_STRINGIFY(x)) - 1) return 0; \
-    req->method = SHTTP_METHOD_##x;                        \
-    return sizeof(SHTTP_STRINGIFY(x)) - 1;                 \
+#define X(x)                                         \
+  else if(SHTTP_CMP(msg, STRINGIFY(x))) {            \
+    if(msg_len < sizeof(STRINGIFY(x)) - 1) return 0; \
+    req->method = SHTTP_METHOD_##x;                  \
+    return sizeof(STRINGIFY(x)) - 1;                 \
   }
 
   req->method = SHTTP_METHOD_LENGTH;

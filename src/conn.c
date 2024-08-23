@@ -10,6 +10,7 @@
 #include "compose/compose.h"
 #include "conf.h"
 #include "parse/parse.h"
+#include "private.h"
 
 struct pollfd sockfd = {.events = POLLIN};
 struct pollfd connfds[MAX_CONNS];
@@ -32,7 +33,7 @@ bool shttp_conn_accept(shttp_u16 timeout) {
 
 bool shttp_conn_accept_nblk(void) { return shttp_conn_accept(0); }
 
-bool shttp_conn_id_valid(shttp_conn_id id) { return id < MAX_CONNS; }
+CONST bool shttp_conn_id_valid(shttp_conn_id id) { return id < MAX_CONNS; }
 
 shttp_conn_id shttp_conn_next(char *req, shttp_reqi *len, shttp_reqi max_len,
                               shttp_u16 timeout) {

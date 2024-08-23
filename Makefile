@@ -5,7 +5,7 @@ DIRS=$(BIN) $(BUILD)
 SRC=src
 
 NO_WARN=-Wno-packed-bitfield-compat
-WARN=-Wall -Wextra -Wvla $(NO_WARN)
+WARN=-Wall -Wextra -Wvla -Wsuggest-attribute=pure -Wsuggest-attribute=const $(NO_WARN)
 NO_WARN_TESTS=-Wno-unused-parameter -Wno-incompatible-pointer-types -Wno-unused-but-set-parameter
 NO_WARN_DEBUG=-Wno-unused-function
 MEMORY_DEBUG=-fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract

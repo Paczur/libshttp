@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../macros.h"
+#include "../private.h"
 #include "compose_token.h"
 
 shttp_resi shttp_compose_version(char *msg, shttp_resi msg_len,
