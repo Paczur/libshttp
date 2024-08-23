@@ -19,7 +19,8 @@ shttp_reqi shttp_parse_token_number(shttp_u16 *n, const char *msg,
   return len - 1;
 }
 
-shttp_reqi shttp_parse_token_cpy(char *token, const char *msg, shttp_reqi len) {
+shttp_reqi shttp_parse_token_cpy(char *restrict token, const char *restrict msg,
+                                 shttp_reqi len) {
   shttp_reqi i = 0;
   for(; i < len; i++) {
     token[i] = msg[i];
@@ -27,8 +28,9 @@ shttp_reqi shttp_parse_token_cpy(char *token, const char *msg, shttp_reqi len) {
   return i;
 }
 
-shttp_reqi shttp_parse_token_cpy_until(char *token, const char *msg,
-                                       shttp_reqi len, char end) {
+shttp_reqi shttp_parse_token_cpy_until(char *restrict token,
+                                       const char *restrict msg, shttp_reqi len,
+                                       char end) {
   for(shttp_reqi i = 0; i < len; i++) {
     if(!msg[i] || msg[i] == end) {
       token[i] = 0;
@@ -40,8 +42,10 @@ shttp_reqi shttp_parse_token_cpy_until(char *token, const char *msg,
   return len;
 }
 
-shttp_reqi shttp_parse_token_cpy_until_or(char *token, const char *msg,
-                                          shttp_reqi len, const char *end) {
+shttp_reqi shttp_parse_token_cpy_until_or(char *restrict token,
+                                          const char *restrict msg,
+                                          shttp_reqi len,
+                                          const char *restrict end) {
   for(shttp_reqi i = 0; i < len; i++) {
     if(!msg[i]) {
       token[i] = 0;
@@ -59,15 +63,17 @@ shttp_reqi shttp_parse_token_cpy_until_or(char *token, const char *msg,
   return len;
 }
 
-bool shttp_parse_token_cmp(const char *msg, const char *token, shttp_reqi len) {
+PURE bool shttp_parse_token_cmp(const char *restrict msg,
+                                const char *restrict token, shttp_reqi len) {
   for(shttp_reqi i = 0; i < len; i++) {
     if(msg[i] != token[i]) return false;
   }
   return true;
 }
 
-bool shttp_parse_token_cmp_until(const char *token, const char *msg,
-                                 shttp_reqi len, char end) {
+PURE bool shttp_parse_token_cmp_until(const char *restrict token,
+                                      const char *restrict msg, shttp_reqi len,
+                                      char end) {
   for(shttp_reqi i = 0; i < len; i++) {
     if(!token[i] && (!msg[i] || msg[i] == end)) return true;
     if(msg[i] != token[i]) return false;

@@ -19,9 +19,10 @@
 #define SHTTP_PARSE_HEADER(name) \
   (step = shttp_parse_header_##name(req, msg + off, msg_len - off))
 
-static shttp_reqi shttp_parse_header_value(shttp_value *val, const char *msg,
+static shttp_reqi shttp_parse_header_value(shttp_value *val,
+                                           const char *restrict msg,
                                            shttp_reqi msg_len,
-                                           const char *token,
+                                           const char *restrict token,
                                            shttp_reqi token_len) {
   shttp_reqi step;
   if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
@@ -31,11 +32,9 @@ static shttp_reqi shttp_parse_header_value(shttp_value *val, const char *msg,
   return token_len + step;
 }
 
-static shttp_reqi shttp_parse_header_values(shttp_value *vals,
-                                            shttp_u8 vals_len, const char *msg,
-                                            shttp_reqi msg_len,
-                                            const char *token,
-                                            shttp_reqi token_len) {
+static shttp_reqi shttp_parse_header_values(
+  shttp_value *vals, shttp_u8 vals_len, const char *restrict msg,
+  shttp_reqi msg_len, const char *restrict token, shttp_reqi token_len) {
   shttp_reqi step;
   if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
     return 0;
@@ -46,8 +45,8 @@ static shttp_reqi shttp_parse_header_values(shttp_value *vals,
 }
 
 static shttp_reqi shttp_parse_header_values_weighted(
-  shttp_value_weighted *vals, shttp_u8 vals_len, const char *msg,
-  shttp_reqi msg_len, const char *token, shttp_reqi token_len) {
+  shttp_value_weighted *vals, shttp_u8 vals_len, const char *restrict msg,
+  shttp_reqi msg_len, const char *restrict token, shttp_reqi token_len) {
   shttp_reqi step;
   if(msg_len < token_len || !shttp_parse_token_cmp(msg, token, token_len))
     return 0;
