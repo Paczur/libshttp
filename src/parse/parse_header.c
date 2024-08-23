@@ -19,7 +19,7 @@
 #define SHTTP_PARSE_HEADER(name) \
   (step = shttp_parse_header_##name(req, msg + off, msg_len - off))
 
-static shttp_reqi shttp_parse_header_value(shttp_value *val,
+static shttp_reqi shttp_parse_header_value(shttp_value val,
                                            const char *restrict msg,
                                            shttp_reqi msg_len,
                                            const char *restrict token,
@@ -75,7 +75,7 @@ SHTTP_X_REQUEST_HEADERS_VALUES
 #define X(name, token)                                         \
   static shttp_reqi shttp_parse_header_##name(                 \
     shttp_request *req, const char *msg, shttp_reqi msg_len) { \
-    return SHTTP_VALUE(&req->name, msg, msg_len, token);       \
+    return SHTTP_VALUE(req->name, msg, msg_len, token);        \
   }
 SHTTP_X_REQUEST_HEADERS_VALUE
 #undef X
@@ -107,13 +107,35 @@ static shttp_reqi shttp_parse_header_host(shttp_request *req, const char *msg,
   return off + step + 1;
 }
 
+static shttp_reqi shttp_parse_header_authorization(shttp_request *req,
+                                                   const char *msg,
+                                                   shttp_reqi msg_len) {
+  shttp_reqi off;
+  shttp_reqi step;
+  if(msg_len < sizeof("Authorization: ") || !SHTTP_CMP(msg, "Authorization: "))
+    return 0;
+  off = sizeof("Authorization: ") - 1;
+  step = shttp_parse_token_cpy_until(req->authorization_scheme, msg + off,
+                                     msg_len - off, ' ');
+  if(!step || !msg[off + step]) return 0;
+  off += step + 1;
+  step = shttp_parse_token_cpy_until_or(req->authorization_value, msg + off,
+                                        msg_len - off, "\r\n");
+  if(!step) return 0;
+  off += step;
+  if(msg[off] == '\r') off++;
+  if(msg[off] != '\n') return 0;
+  return off + 1;
+}
+
 #define X(name, token) || SHTTP_PARSE_HEADER(name)
 shttp_reqi shttp_parse_header(shttp_request *req, const char *msg,
                               shttp_reqi msg_len) {
   shttp_reqi step;
   shttp_reqi off = 0;
   while(msg[off] != '\r' && msg[off] != '\n') {
-    if(SHTTP_PARSE_HEADER(host)
+    if(SHTTP_PARSE_HEADER(host) ||
+       SHTTP_PARSE_HEADER(authorization)
          SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED SHTTP_X_REQUEST_HEADERS_VALUES
            SHTTP_X_REQUEST_HEADERS_VALUE) {
       off += step;

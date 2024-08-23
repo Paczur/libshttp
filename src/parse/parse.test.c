@@ -29,7 +29,7 @@ TEST(shttp_parse_token_values, single) {
   shttp_value val;
   assert_int_equal(sizeof(msg) - 1,
                    shttp_parse_token_values(&val, 1, msg, sizeof(msg)));
-  assert_string_equal("test", val.value);
+  assert_string_equal("test", val);
 }
 
 TEST(shttp_parse_token_values, multiple) {
@@ -37,8 +37,8 @@ TEST(shttp_parse_token_values, multiple) {
   shttp_value vals[2];
   assert_int_equal(sizeof(msg) - 1, shttp_parse_token_values(vals, LENGTH(vals),
                                                              msg, sizeof(msg)));
-  assert_string_equal("test", vals[0].value);
-  assert_string_equal("test2", vals[1].value);
+  assert_string_equal("test", vals[0]);
+  assert_string_equal("test2", vals[1]);
 }
 
 TEST(shttp_parse_token_values_weighted, single) {
@@ -86,7 +86,7 @@ TEST(shttp_parse_token_values, single_LF) {
   shttp_value val;
   assert_int_equal(sizeof(msg) - 1,
                    shttp_parse_token_values(&val, 1, msg, sizeof(msg)));
-  assert_string_equal("test", val.value);
+  assert_string_equal("test", val);
 }
 
 TEST(shttp_parse_token_values, multiple_LF) {
@@ -94,8 +94,8 @@ TEST(shttp_parse_token_values, multiple_LF) {
   shttp_value vals[2];
   assert_int_equal(sizeof(msg) - 1, shttp_parse_token_values(vals, LENGTH(vals),
                                                              msg, sizeof(msg)));
-  assert_string_equal("test", vals[0].value);
-  assert_string_equal("test2", vals[1].value);
+  assert_string_equal("test", vals[0]);
+  assert_string_equal("test2", vals[1]);
 }
 
 TEST(shttp_parse_token_values_weighted, single_LF) {
@@ -136,19 +136,6 @@ TEST(shttp_parse_token_values_weighted, multiple_weighted_LF) {
   assert_string_equal("test2", vals[1].value);
   assert_int_equal(SHTTP_WEIGHT_000 + 500, vals[0].weight);
   assert_int_equal(SHTTP_WEIGHT_000 + 10, vals[1].weight);
-}
-
-TEST(shttp_parse_token_datetime, short_epoch_start) {
-  shttp_datetime datetime;
-  char msg[] = "01 Jan 1970 01:02 UT";
-  assert_int_equal(sizeof(msg) - 1,
-                   shttp_parse_token_datetime(&datetime, msg, sizeof(msg)));
-  assert_int_equal(1, datetime.day);
-  assert_int_equal(SHTTP_MONTH_JAN, datetime.month);
-  assert_int_equal(1970, datetime.year);
-  assert_int_equal(1, datetime.hours);
-  assert_int_equal(2, datetime.minutes);
-  assert_int_equal(SHTTP_TIMEZONE_UT, datetime.timezone);
 }
 
 TEST(shttp_parse_method, get) {
@@ -247,6 +234,17 @@ TEST(shttp_parse_header_host, ip_port_LF) {
   assert_int_equal(20, req.host_port);
 }
 
+TEST(shttp_parse_header_authorization, basic) {
+  shttp_request req;
+  const char scheme[] = "Basic";
+  const char value[] = "sadfasdf=";
+  const char msg[] = "Authorization: Basic sadfasdf=\r\n";
+  assert_int_equal(sizeof(msg) - 1,
+                   shttp_parse_header_authorization(&req, msg, sizeof(msg)));
+  assert_string_equal(scheme, req.authorization_scheme);
+  assert_string_equal(value, req.authorization_value);
+}
+
 TEST(shttp_parse_request, start_line) {
   shttp_request req;
   char msg[] = "GET / HTTP/1.1\r\n";
@@ -315,8 +313,8 @@ TEST(shttp_parse_request, httpie) {
   assert_string_equal("*/*", req.accept[0].value);
   assert_int_equal(SHTTP_WEIGHT_1_0, req.accept[0].weight);
 
-  assert_string_equal("keep-alive", req.connection[0].value);
-  assert_string_equal("HTTPie/3.2.2", req.user_agent.value);
+  assert_string_equal("keep-alive", req.connection[0]);
+  assert_string_equal("HTTPie/3.2.2", req.user_agent);
 }
 
 int main(void) {
@@ -336,7 +334,6 @@ int main(void) {
     ADD(shttp_parse_token_values_weighted, single_weighted_LF),
     ADD(shttp_parse_token_values_weighted, multiple_weighted),
     ADD(shttp_parse_token_values_weighted, multiple_weighted_LF),
-    ADD(shttp_parse_token_datetime, short_epoch_start),
     ADD(shttp_parse_method, get),
     ADD(shttp_parse_method, post),
     ADD(shttp_parse_path, slash),
@@ -348,6 +345,7 @@ int main(void) {
     ADD(shttp_parse_header_host, domain_LF),
     ADD(shttp_parse_header_host, ip_port),
     ADD(shttp_parse_header_host, ip_port_LF),
+    ADD(shttp_parse_header_authorization, basic),
     ADD(shttp_parse_request_header, normal),
     ADD(shttp_parse_request_header, normal_LF),
     ADD(shttp_parse_request, start_line),

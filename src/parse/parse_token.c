@@ -81,12 +81,12 @@ PURE bool shttp_parse_token_cmp_until(const char *restrict token,
   return true;
 }
 
-shttp_reqi shttp_parse_token_value(shttp_value *val, const char *msg,
+shttp_reqi shttp_parse_token_value(shttp_value val, const char *msg,
                                    shttp_reqi msg_len) {
   shttp_reqi off = 0;
   shttp_reqi step;
   step = shttp_parse_token_cpy_until_or(
-    val->value, msg + off, MIN(LENGTH(val->value), (shttp_reqi)(msg_len - off)),
+    val, msg + off, MIN(sizeof(shttp_value), (shttp_reqi)(msg_len - off)),
     "\r\n");
   if(!step) return 0;
   off += step;
@@ -106,8 +106,8 @@ shttp_reqi shttp_parse_token_values(shttp_value *vals, shttp_u8 vals_len,
       continue;
     }
     step = shttp_parse_token_cpy_until_or(
-      vals[i].value, msg + off,
-      MIN(LENGTH(vals[0].value), (shttp_reqi)(msg_len - off)), ",\r\n");
+      vals[i], msg + off, MIN(sizeof(shttp_value), (shttp_reqi)(msg_len - off)),
+      ",\r\n");
     if(!step) return 0;
     off += step;
     i++;

@@ -91,12 +91,13 @@ typedef int_least64_t shttp_s64;
   X(NOT_EXTENDED)                    \
   X(NETWORK_AUTHENTICATION_REQUIRED)
 
-#define SHTTP_X_REQUEST_HEADERS_VALUE X(user_agent, "User-Agent: ")
+#define SHTTP_X_REQUEST_HEADERS_VALUE \
+  X(user_agent, "User-Agent: ")       \
+  X(referer, "Referer: ")
 
 #define SHTTP_X_REQUEST_HEADERS_VALUES X(connection, "Connection: ")
 
 #define SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED \
-  X(a_im, "A-IM: ")                             \
   X(accept, "Accept: ")                         \
   X(accept_charset, "Accept-Charset: ")         \
   X(accept_encoding, "Accept-Encoding: ")       \
@@ -156,7 +157,7 @@ typedef struct shttp_datetime {
   shttp_u8 minutes : 6;
   shttp_u8 seconds : 6;
   shttp_u16 year : 12;
-} PACK_STRUCTS shttp_datetime;
+} SHTTP_PACKED shttp_datetime;
 
 typedef shttp_u8 shttp_conn_id;
 
@@ -251,36 +252,38 @@ typedef enum shttp_weight {
 } shttp_weight;
 
 typedef struct shttp_value_weighted {
-  char value[STRING_VALUE_LENGTH];
+  char value[SHTTP_STRING_VALUE_LENGTH];
   shttp_u16 weight : 10;
-} PACK_STRUCTS shttp_value_weighted;
+} SHTTP_PACKED shttp_value_weighted;
 
-typedef struct shttp_value {
-  char value[STRING_VALUE_LENGTH];
-} PACK_STRUCTS shttp_value;
+typedef char shttp_value[SHTTP_STRING_VALUE_LENGTH];
 
 typedef struct shttp_request {
   shttp_version version : 3;
   shttp_method method : 4;
   shttp_conn_id id;  // 16
+
   shttp_u16 host_port;
-  char host_domain[DOMAIN_LENGTH];
+  shttp_value authorization_scheme;
+  shttp_value authorization_value;
+  char host_domain[SHTTP_DOMAIN_LENGTH];
 #define X(name, token) shttp_value name;
   SHTTP_X_REQUEST_HEADERS_VALUE
 #undef X
-#define X(name, token) shttp_value name[VALUES_PER_HEADER];
+#define X(name, token) shttp_value name[SHTTP_VALUES_PER_HEADER];
   SHTTP_X_REQUEST_HEADERS_VALUES
 #undef X
-#define X(name, token) shttp_value_weighted name[VALUES_PER_HEADER];
+#define X(name, token) shttp_value_weighted name[SHTTP_VALUES_PER_HEADER];
   SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED
 #undef X
-  char path[PATH_LENGTH];
-} PACK_STRUCTS shttp_request;
+
+  char path[SHTTP_PATH_LENGTH];
+} SHTTP_PACKED shttp_request;
 
 typedef struct shttp_response {
   shttp_conn_id id;
   shttp_version version : 3;
   shttp_code code : 9;
-} PACK_STRUCTS shttp_response;
+} SHTTP_PACKED shttp_response;
 
 #endif
