@@ -6,16 +6,6 @@
 
 #include "conf.h"
 
-typedef uint_least8_t shttp_u8;
-typedef uint_least16_t shttp_u16;
-typedef uint_least32_t shttp_u32;
-typedef uint_least64_t shttp_u64;
-
-typedef int_least8_t shttp_s8;
-typedef int_least16_t shttp_s16;
-typedef int_least32_t shttp_s32;
-typedef int_least64_t shttp_s64;
-
 #define SHTTP_X_METHODS \
   X(GET)                \
   X(POST)               \
@@ -91,90 +81,33 @@ typedef int_least64_t shttp_s64;
   X(NOT_EXTENDED)                    \
   X(NETWORK_AUTHENTICATION_REQUIRED)
 
-#define SHTTP_X_REQUEST_HEADERS_VALUE \
-  X(user_agent, "User-Agent: ")       \
-  X(referer, "Referer: ")
+#define SHTTP_SLICE(x) {x, x + sizeof(x) - 1}
 
-#define SHTTP_X_REQUEST_HEADERS_VALUES X(connection, "Connection: ")
+typedef uint_least8_t shttp_u8;
+typedef uint_least16_t shttp_u16;
+typedef uint_least32_t shttp_u32;
+typedef uint_least64_t shttp_u64;
 
-#define SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED \
-  X(accept, "Accept: ")                         \
-  X(accept_charset, "Accept-Charset: ")         \
-  X(accept_encoding, "Accept-Encoding: ")       \
-  X(accept_language, "Accept-Language: ")
+typedef int_least8_t shttp_s8;
+typedef int_least16_t shttp_s16;
+typedef int_least32_t shttp_s32;
+typedef int_least64_t shttp_s64;
 
-typedef enum shttp_weekday {
-  SHTTP_WEEKDAY_MON,
-  SHTTP_WEEKDAY_TUE,
-  SHTTP_WEEKDAY_WED,
-  SHTTP_WEEKDAY_THU,
-  SHTTP_WEEKDAY_FRI,
-  SHTTP_WEEKDAY_SAT,
-  SHTTP_WEEKDAY_SUN
-} shttp_weekday;
-
-typedef enum shttp_month {
-  SHTTP_MONTH_JAN,
-  SHTTP_MONTH_FEB,
-  SHTTP_MONTH_MAR,
-  SHTTP_MONTH_APR,
-  SHTTP_MONTH_MAY,
-  SHTTP_MONTH_JUN,
-  SHTTP_MONTH_JUL,
-  SHTTP_MONTH_AUG,
-  SHTTP_MONTH_SEP,
-  SHTTP_MONTH_OCT,
-  SHTTP_MONTH_NOV,
-  SHTTP_MONTH_DEC
-} shttp_month;
-
-typedef enum shttp_timezone {
-  SHTTP_TIMEZONE_UT = 0,
-  SHTTP_TIMEZONE_GMT = 0,
-  SHTTP_TIMEZONE_EST,
-  SHTTP_TIMEZONE_EDT,
-  SHTTP_TIMEZONE_CST,
-  SHTTP_TIMEZONE_CDT,
-  SHTTP_TIMEZONE_MST,
-  SHTTP_TIMEZONE_MDT,
-  SHTTP_TIMEZONE_PST,
-  SHTTP_TIMEZONE_PDT,
-  SHTTP_TIMEZONE_Z = 0,
-  SHTTP_TIMEZONE_A,
-  SHTTP_TIMEZONE_M,
-  SHTTP_TIMEZONE_N,
-  SHTTP_TIMEZONE_Y,
-} shttp_timezone;
-
-typedef struct shttp_datetime {
-  shttp_u8 timezone_offset_min : 2;  // * 15
-  shttp_weekday weekday : 3;
-  shttp_month month : 4;
-  shttp_timezone timezone : 4;
-  shttp_u8 day : 5;
-  shttp_u8 hours : 5;
-  shttp_s8 timezone_offset_hour : 6;
-  shttp_u8 minutes : 6;
-  shttp_u8 seconds : 6;
-  shttp_u16 year : 12;
-} SHTTP_PACKED shttp_datetime;
+typedef enum shttp_status {
+  SHTTP_STATUS_OK,
+  SHTTP_STATUS_UNKNOWN_ERROR,
+  SHTTP_STATUS_SLICE_END,
+  SHTTP_STATUS_PREFIX_INVALID,
+  SHTTP_STATUS_VALUE_INVALID,
+  SHTTP_STATUS_NEWLINE_EXPECTED,
+  SHTTP_STATUS_SPACE_EXPECTED,
+} shttp_status;
 
 typedef shttp_u8 shttp_conn_id;
 
-typedef enum shttp_method {
-#define X(x) SHTTP_METHOD_##x,
-  SHTTP_X_METHODS
-#undef X
-    SHTTP_METHOD_LENGTH
-} shttp_method;
+typedef shttp_u16 shttp_reqi;
 
-typedef enum shttp_version {
-  SHTTP_VERSION_1_0,
-  SHTTP_VERSION_1_1,
-  SHTTP_VERSION_2_0,
-  SHTTP_VERSION_3_0,
-  SHTTP_VERSION_LENGTH
-} shttp_version;
+typedef shttp_u32 shttp_resi;
 
 typedef enum shttp_code {
   SHTTP_CODE_CONTINUE = 100,
@@ -243,47 +176,45 @@ typedef enum shttp_code {
   SHTTP_CODE_LOOP_DETECTED,
   SHTTP_CODE_NOT_EXTENDED,
   SHTTP_CODE_NETWORK_AUTHENTICATION_REQUIRED
-} shttp_code;
+} SHTTP_PACKED shttp_code;
 
-typedef enum shttp_weight {
-  SHTTP_WEIGHT_1_0,
-  SHTTP_WEIGHT_000,
-  SHTTP_WEIGHT_999 = SHTTP_WEIGHT_000 + 999
-} shttp_weight;
+typedef enum shttp_method {
+#define X(x) SHTTP_METHOD_##x,
+  SHTTP_X_METHODS
+#undef X
+    SHTTP_METHOD_LENGTH
+} SHTTP_PACKED shttp_method;
 
-typedef struct shttp_value_weighted {
-  char value[SHTTP_STRING_VALUE_LENGTH];
-  shttp_u16 weight : 10;
-} SHTTP_PACKED shttp_value_weighted;
+typedef enum shttp_version {
+  SHTTP_VERSION_1_0,
+  SHTTP_VERSION_1_1,
+  SHTTP_VERSION_2_0,
+  SHTTP_VERSION_3_0,
+  SHTTP_VERSION_LENGTH
+} SHTTP_PACKED shttp_version;
 
-typedef char shttp_value[SHTTP_STRING_VALUE_LENGTH];
+typedef struct shttp_slice {
+  const char *begin;
+  const char *end;
+} SHTTP_PACKED shttp_slice;
+
+typedef struct shttp_mut_slice {
+  char *begin;
+  char *end;
+} SHTTP_PACKED shttp_mut_slice;
 
 typedef struct shttp_request {
-  shttp_version version : 3;
-  shttp_method method : 4;
-  shttp_conn_id id;  // 16
-
-  shttp_u16 host_port;
-  shttp_value authorization_scheme;
-  shttp_value authorization_value;
-  char host_domain[SHTTP_DOMAIN_LENGTH];
-#define X(name, token) shttp_value name;
-  SHTTP_X_REQUEST_HEADERS_VALUE
-#undef X
-#define X(name, token) shttp_value name[SHTTP_VALUES_PER_HEADER];
-  SHTTP_X_REQUEST_HEADERS_VALUES
-#undef X
-#define X(name, token) shttp_value_weighted name[SHTTP_VALUES_PER_HEADER];
-  SHTTP_X_REQUEST_HEADERS_VALUES_WEIGHTED
-#undef X
-
-  char path[SHTTP_PATH_LENGTH];
+  shttp_version version;
+  shttp_method method;
+  shttp_conn_id id;
+  shttp_slice path;
+  shttp_slice headers;
 } SHTTP_PACKED shttp_request;
 
 typedef struct shttp_response {
   shttp_conn_id id;
-  shttp_version version : 3;
-  shttp_code code : 9;
+  shttp_version version;
+  shttp_code code;
 } SHTTP_PACKED shttp_response;
 
 #endif

@@ -1,9 +1,15 @@
 #ifndef PARSE_HEADER_H
 #define PARSE_HEADER_H
 
-#include "parse_types.h"
+#include "../types.h"
 
-shttp_reqi shttp_parse_header(shttp_request *req, const char *msg,
-                              shttp_reqi msg_len);
+shttp_status shttp_parse_header_next(shttp_slice out[static 1],
+                                     shttp_slice s[static 1]);
+
+shttp_status shttp_parse_header_key(shttp_slice out[static 1],
+                                    shttp_slice s[static 1]);
+
+shttp_status shttp_parse_header_value(shttp_slice out[static 1],
+                                      shttp_slice s[static 1]);
 
 #endif

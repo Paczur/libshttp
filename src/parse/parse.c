@@ -6,94 +6,99 @@
 #include "../conf.h"
 #include "parse_header.h"
 #include "parse_macros.h"
-#include "parse_token.h"
+#include "parse_slice.h"
 
-static shttp_reqi shttp_parse_method(shttp_request *req, const char *msg,
-                                     shttp_reqi msg_len) {
-#define X(x)                                         \
-  else if(SHTTP_CMP(msg, STRINGIFY(x))) {            \
-    if(msg_len < sizeof(STRINGIFY(x)) - 1) return 0; \
-    req->method = SHTTP_METHOD_##x;                  \
-    return sizeof(STRINGIFY(x)) - 1;                 \
+static shttp_status shttp_parse_method(shttp_request req[static 1],
+                                       shttp_slice msg[static 1]) {
+#define X(x)                                                       \
+  else if(SHTTP_CMP(STRINGIFY(x), *msg)) {                         \
+    if((size_t)(msg->end - msg->begin) < sizeof(STRINGIFY(x)) - 1) \
+      return SHTTP_STATUS_SLICE_END;                               \
+    msg->begin += sizeof(STRINGIFY(x)) - 1;                        \
+    req->method = SHTTP_METHOD_##x;                                \
+    return SHTTP_STATUS_OK;                                        \
   }
 
   req->method = SHTTP_METHOD_LENGTH;
   if(0) {
   }
   SHTTP_X_METHODS
-  return 0;
+  return SHTTP_STATUS_VALUE_INVALID;
 
 #undef X
 }
 
-static shttp_reqi shttp_parse_path(shttp_request *req, const char *msg,
-                                   shttp_reqi msg_len) {
-  return shttp_parse_token_cpy_until(req->path, msg, msg_len, ' ');
+static shttp_status shttp_parse_path(shttp_request req[static 1],
+                                     shttp_slice msg[static 1]) {
+  shttp_status status;
+  if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
+  req->path.begin = msg->begin;
+  if((status = shttp_parse_slice_skip_until_space(msg))) return status;
+  req->path.end = msg->begin;
+  return SHTTP_STATUS_OK;
 }
 
-static shttp_reqi shttp_parse_version(shttp_request *req, const char *msg,
-                                      shttp_reqi msg_len) {
-  if(msg_len < sizeof("HTTP/1.0") - 1 || SHTTP_CMP("HTTP/", msg)) return 0;
-  msg += sizeof("HTTP/") - 1;
-  msg_len -= sizeof("HTTP/") - 1;
+static shttp_status shttp_parse_version(shttp_request req[static 1],
+                                        shttp_slice msg[static 1]) {
+  if((size_t)(msg->end - msg->begin) < sizeof("HTTP/1.0") - 1)
+    return SHTTP_STATUS_SLICE_END;
+  if(!SHTTP_CMP("HTTP/", *msg)) return SHTTP_STATUS_PREFIX_INVALID;
+  msg->begin += sizeof("HTTP/") - 1;
 
-  if(SHTTP_CMP(msg, "1.0")) {
+  if(SHTTP_CMP("1.0", *msg)) {
     req->version = SHTTP_VERSION_1_0;
-  } else if(SHTTP_CMP(msg, "1.1")) {
+  } else if(SHTTP_CMP("1.1", *msg)) {
     req->version = SHTTP_VERSION_1_1;
-  } else if(SHTTP_CMP(msg, "2.0")) {
+  } else if(SHTTP_CMP("2.0", *msg)) {
     req->version = SHTTP_VERSION_2_0;
-  } else if(SHTTP_CMP(msg, "3.0")) {
+  } else if(SHTTP_CMP("3.0", *msg)) {
     req->version = SHTTP_VERSION_3_0;
   } else {
     req->version = SHTTP_VERSION_LENGTH;
-    return 0;
+    return SHTTP_STATUS_VALUE_INVALID;
   }
-  return sizeof("HTTP/1.0") - 1;
+  msg->begin += sizeof("1.0") - 1;
+  return SHTTP_STATUS_OK;
 }
 
-static shttp_reqi shttp_parse_start_line(shttp_request *req, const char *msg,
-                                         shttp_reqi msg_len) {
-  shttp_reqi off;
-  shttp_reqi step;
-  step = shttp_parse_method(req, msg, msg_len);
-  if(!step || !msg[step]) return 0;
-  step++;
-
-  off = step;
-  step = shttp_parse_path(req, msg + off, msg_len - off);
-  if(!step || !msg[step]) return 0;
-  step++;
-
-  off += step;
-  step = shttp_parse_version(req, msg + off, msg_len - off);
-  if(!step || !msg[step]) return 0;
-
-  off += step;
-  if(msg[off] == '\r') off++;
-  if(msg[off] != '\n') return 0;
-  return off + 1;
+static shttp_status shttp_parse_start_line(shttp_request req[static 1],
+                                           shttp_slice msg[static 1]) {
+  shttp_status status;
+  if((status = shttp_parse_method(req, msg))) return status;
+  if((status = shttp_parse_slice_space(msg))) return status;
+  if((status = shttp_parse_path(req, msg))) return status;
+  if((status = shttp_parse_slice_space(msg))) return status;
+  if((status = shttp_parse_version(req, msg))) return status;
+  if((status = shttp_parse_slice_newline(msg))) return status;
+  return SHTTP_STATUS_OK;
 }
 
-shttp_reqi shttp_parse_request(shttp_request *req, const char *msg,
-                               shttp_reqi msg_len) {
-  shttp_reqi off = 0;
-  shttp_reqi step;
-  step = shttp_parse_start_line(req, msg, msg_len);
-  if(!step) {
-    puts("Malformed Request: Error parsing start_line");
-    return 0;
+static shttp_status shttp_parse_slices(shttp_request req[static 1],
+                                       shttp_slice msg[static 1]) {
+  shttp_status status;
+  const char *t;
+  if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
+  req->headers.begin = msg->begin;
+  while(1) {
+    if((status = shttp_parse_slice_skip_past_newline(msg))) return status;
+    t = msg->begin;
+    if(t == msg->end) return SHTTP_STATUS_SLICE_END;
+    if(!(status = shttp_parse_slice_newline(msg))) break;
   }
-  off += step;
-  if(!msg[off]) return off;
+  req->headers.end = t;
+  if(msg->begin == msg->end) return SHTTP_STATUS_OK;
+  t = msg->begin;
+  if((status = shttp_parse_slice_skip_until_newline(msg))) return status;
+  msg->end = msg->begin;
+  msg->begin = t;
+  return SHTTP_STATUS_OK;
+}
 
-  step = shttp_parse_header(req, msg + off, msg_len - off);
-  if(!step) {
-    puts("Malformed Request: Error parsing header");
-    return 0;
-  }
-  off += step;
-  if(!msg[step]) return off;
-  return off;
+shttp_status shttp_parse_request(shttp_request req[static 1],
+                                 shttp_slice msg[static 1]) {
+  shttp_status status;
+  if((status = shttp_parse_start_line(req, msg))) return status;
+  if((status = shttp_parse_slices(req, msg))) return status;
+  return SHTTP_STATUS_OK;
 }
 

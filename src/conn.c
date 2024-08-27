@@ -15,7 +15,7 @@
 struct pollfd sockfd = {.events = POLLIN};
 struct pollfd connfds[SHTTP_MAX_CONNS];
 
-void shttp_conn_close(int *fd) {
+void shttp_conn_close(int fd[static 1]) {
   close(*fd);
   *fd = -1;
 }
@@ -33,12 +33,12 @@ bool shttp_conn_accept(shttp_u16 timeout) {
 
 bool shttp_conn_accept_nblk(void) { return shttp_conn_accept(0); }
 
-CONST bool shttp_conn_id_valid(shttp_conn_id id) {
+SHTTP_CONST bool shttp_conn_id_valid(shttp_conn_id id) {
   return id < SHTTP_MAX_CONNS;
 }
 
-shttp_conn_id shttp_conn_next(char *req, shttp_reqi *len, shttp_reqi max_len,
-                              shttp_u16 timeout) {
+shttp_conn_id shttp_conn_next(char req[static 1], shttp_reqi len[static 1],
+                              shttp_reqi max_len, shttp_u16 timeout) {
   ssize_t l;
   for(shttp_u8 j = 0; j < 2; j++) {
     shttp_conn_accept(timeout / 4);
@@ -56,7 +56,7 @@ shttp_conn_id shttp_conn_next(char *req, shttp_reqi *len, shttp_reqi max_len,
   return SHTTP_MAX_CONNS + 1;
 }
 
-shttp_conn_id shttp_conn_next_nblk(char *req, shttp_reqi *len,
+shttp_conn_id shttp_conn_next_nblk(char req[static 1], shttp_reqi len[static 1],
                                    shttp_reqi max_len) {
   for(shttp_conn_id i = 0; i < SHTTP_MAX_CONNS; i++) {
     if(connfds[i].fd && poll(&connfds[i], 1, 0) > 0) {
@@ -68,7 +68,8 @@ shttp_conn_id shttp_conn_next_nblk(char *req, shttp_reqi *len,
   return SHTTP_MAX_CONNS + 1;
 }
 
-void shttp_conn_send(const char *res, shttp_reqi res_len, shttp_conn_id id) {
+void shttp_conn_send(const char res[static 1], shttp_reqi res_len,
+                     shttp_conn_id id) {
   send(connfds[id].fd, res, res_len, 0);
   shttp_conn_close(&connfds[id].fd);
   shttp_conn_accept_nblk();

@@ -11,5 +11,7 @@
 #define SHTTP_DOMAIN_LENGTH 50
 #define SHTTP_PATH_LENGTH 128
 #define SHTTP_PACKED __attribute__((__packed__))
+#define SHTTP_PURE __attribute__((pure))
+#define SHTTP_CONST __attribute__((const))
 
 #endif
