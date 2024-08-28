@@ -1,8 +1,6 @@
 #include "parse.c"
 
 #include "../test.h"
-#include "parse_header.c"
-#include "parse_slice.c"
 
 TEST(shttp_parse_slice_newline, CRLF) {
   const char msg[] = "\r\n";
