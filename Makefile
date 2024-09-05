@@ -5,13 +5,12 @@ DIRS=$(BIN) $(BUILD)
 SRC=src
 
 NO_WARN=-Wno-packed-bitfield-compat
-WARN=-Wall -Wextra -Wvla -Wsuggest-attribute=pure -Wsuggest-attribute=const $(NO_WARN)
-NO_WARN_TESTS=-Wno-unused-parameter -Wno-incompatible-pointer-types -Wno-unused-but-set-parameter
-NO_WARN_DEBUG=-Wno-unused-function
+WARN=-Wall -Wextra -Werror -Wno-error=cpp -Wunused-result -Wvla -Wshadow -Wstrict-prototypes -Wsuggest-attribute=pure -Wsuggest-attribute=const $(NO_WARN)
+NO_WARN_TESTS=-Wno-unused-parameter
 MEMORY_DEBUG=-fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract
-DEBUG=$(NO_WARN_DEBUG) $(MEMORY_DEBUG) -Og -ggdb3  -fsanitize=undefined -fsanitize-address-use-after-scope -fstack-check -fno-stack-clash-protection
+DEBUG=$(MEMORY_DEBUG) -Og -ggdb3  -fsanitize=undefined -fsanitize-address-use-after-scope -fstack-check -fno-stack-clash-protection
 LIBS=$(shell pkg-config --cflags --libs cmocka)
-RELEASE=-Os -s -pipe -flto=4 -fwhole-program -D NDEBUG
+RELEASE=-O3 -s -pipe -flto=4 -fwhole-program -D NDEBUG
 CFLAGS=$(WARN) -march=native -std=gnu99 $(LIBS)
 
 TESTS=$(wildcard $(SRC)/*.test.c $(SRC)/*/*.test.c)

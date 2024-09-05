@@ -538,12 +538,12 @@ TEST(shttp_parse_header_key, BASIC) {
 }
 
 TEST(shttp_parse_header_value, SINGLE) {
-  const char msg[] = "value";
+  const char msg[] = "value\r\n";
   shttp_slice smsg = SHTTP_SLICE(msg);
   shttp_slice out;
   assert_int_equal(SHTTP_STATUS_OK, shttp_parse_header_value(&out, &smsg));
   assert_ptr_equal(msg, out.begin);
-  assert_ptr_equal(msg + sizeof(msg) - 1, out.end);
+  assert_ptr_equal(msg + sizeof(msg) - 3, out.end);
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
 }
@@ -642,6 +642,7 @@ int main(void) {
     ADD(shttp_parse_header_next, SINGLE),
     ADD(shttp_parse_header_next, MULTIPLE),
     ADD(shttp_parse_header_key, BASIC),
+    ADD(shttp_parse_header_value, SINGLE),
     ADD(shttp_parse_header_value, COMMA),
     ADD(shttp_parse_header_value, SPACE),
     ADD(shttp_parse_header_value, COMMA_SPACE),

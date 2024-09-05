@@ -1,6 +1,7 @@
 #include "conn.h"
 
 #include <arpa/inet.h>
+#include <assert.h>
 #include <errno.h>
 #include <poll.h>
 #include <stdio.h>
@@ -12,97 +13,110 @@
 #include "parse/parse.h"
 #include "private.h"
 
-struct pollfd sockfd = {.events = POLLIN};
-struct pollfd connfds[SHTTP_MAX_CONNS];
+#warning "TODO)): Think about removing those variables"
+static struct pollfd sockfd = {.events = POLLIN};
+static struct pollfd connfds[SHTTP_MAX_CONNS];
 
-void shttp_conn_close(int fd[static 1]) {
-  close(*fd);
+shttp_status shttp_conn_close(int fd[static 1]) {
+  if(close(*fd)) return SHTTP_STATUS_CONN_FD_CLOSE;
   *fd = -1;
+  return SHTTP_STATUS_OK;
 }
 
-bool shttp_conn_accept(shttp_u16 timeout) {
-  if(!poll(&sockfd, 1, timeout)) return false;
+shttp_status shttp_conn_accept(shttp_u16 timeout) {
+  if(!poll(&sockfd, 1, timeout)) return SHTTP_STATUS_TIMEOUT;
   for(shttp_conn_id i = 0; i < SHTTP_MAX_CONNS; i++) {
     if(connfds[i].fd == -1) {
-      connfds[i].fd = accept(sockfd.fd, NULL, NULL);
-      return true;
+      if(((connfds[i].fd = accept(sockfd.fd, NULL, NULL))) == -1)
+        return SHTTP_STATUS_CONN_ACCEPT;
+      return SHTTP_STATUS_OK;
     }
   }
-  return false;
+  return SHTTP_STATUS_UNKNOWN_ERROR;
 }
 
-bool shttp_conn_accept_nblk(void) { return shttp_conn_accept(0); }
+shttp_status shttp_conn_accept_nblk(void) { return shttp_conn_accept(0); }
 
-SHTTP_CONST bool shttp_conn_id_valid(shttp_conn_id id) {
-  return id < SHTTP_MAX_CONNS;
-}
-
-shttp_conn_id shttp_conn_next(char req[static 1], shttp_reqi len[static 1],
-                              shttp_reqi max_len, shttp_u16 timeout) {
+#warning "TODO)): Improve this implementation"
+shttp_status shttp_conn_next(shttp_conn_id id[static 1],
+                             shttp_mut_slice req[static 1], shttp_u16 timeout) {
+  assert(id);
+  assert(req);
+  assert(req->begin <= req->end);
   ssize_t l;
+  if(req->begin == req->end) return SHTTP_STATUS_SLICE_END;
   for(shttp_u8 j = 0; j < 2; j++) {
-    shttp_conn_accept(timeout / 4);
+    if(shttp_conn_accept(timeout / 4)) {
+    }
     if(poll(connfds, SHTTP_MAX_CONNS, timeout / 4) > 0) {
       for(shttp_conn_id i = 0; i < SHTTP_MAX_CONNS; i++) {
         if(connfds[i].fd && poll(&connfds[i], 1, 0) > 0) {
-          l = recv(connfds[i].fd, req, max_len, 0);
-          *len = l < 0 ? 0 : l;
-          return i;
+          l = recv(connfds[i].fd, req->begin, req->end - req->begin, 0);
+          req->end = req->begin + (l < 0 ? 0 : l);
+          *id = i;
+          return SHTTP_STATUS_OK;
         }
       }
     }
   }
-  *len = 0;
-  return SHTTP_MAX_CONNS + 1;
+  return SHTTP_STATUS_TIMEOUT;
 }
 
-shttp_conn_id shttp_conn_next_nblk(char req[static 1], shttp_reqi len[static 1],
-                                   shttp_reqi max_len) {
+shttp_status shttp_conn_next_nblk(shttp_conn_id id[static 1],
+                                  shttp_mut_slice req[static 1]) {
+  assert(id);
+  assert(req);
+  assert(req->begin <= req->end);
+  ssize_t l;
+  if(req->begin == req->end) return SHTTP_STATUS_SLICE_END;
   for(shttp_conn_id i = 0; i < SHTTP_MAX_CONNS; i++) {
     if(connfds[i].fd && poll(&connfds[i], 1, 0) > 0) {
-      *len = recv(connfds[i].fd, req, max_len, 0);
-      return i;
+      l = recv(connfds[i].fd, req->begin, req->end - req->begin, 0);
+      req->end = req->begin + (l < 0 ? 0 : l);
+      *id = i;
+      return SHTTP_STATUS_OK;
     }
   }
-  *len = 0;
-  return SHTTP_MAX_CONNS + 1;
+  return SHTTP_STATUS_TIMEOUT;
 }
 
-void shttp_conn_send(const char res[static 1], shttp_reqi res_len,
-                     shttp_conn_id id) {
-  send(connfds[id].fd, res, res_len, 0);
-  shttp_conn_close(&connfds[id].fd);
-  shttp_conn_accept_nblk();
+shttp_status shttp_conn_send(shttp_slice res, shttp_conn_id id) {
+  shttp_status status;
+  if(send(connfds[id].fd, res.begin, res.end - res.begin - 1, 0) == -1)
+    return SHTTP_STATUS_CONN_SEND;
+  if(((status = shttp_conn_close(&connfds[id].fd)))) return status;
+  if(shttp_conn_accept_nblk()) {
+#warning "TODO)): Decide about logging non fatal errors/warnings"
+  }
+  return SHTTP_STATUS_OK;
 }
 
-bool shttp_conn_init(void) {
+shttp_status shttp_conn_init(shttp_u16 port) {
   struct sockaddr_in servaddr = {.sin_family = AF_INET};
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-  servaddr.sin_port = htons(SHTTP_PORT);
+  servaddr.sin_port = htons(port);
 
-  if((sockfd.fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) == -1) {
-    printf("Socket creation failed, errno: %u\n", errno);
-    return true;
-  }
-  if((bind(sockfd.fd, (struct sockaddr *)&servaddr, sizeof(servaddr))) == -1) {
-    printf("Socket bind failed, errno: %u\n", errno);
-    return true;
-  }
-  listen(sockfd.fd, SHTTP_SOCKET_BACKLOG_SIZE);
+  if(((sockfd.fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0))) == -1)
+    return SHTTP_STATUS_SOCK_CREATE;
+  if(bind(sockfd.fd, (struct sockaddr *)&servaddr, sizeof(servaddr)))
+    return SHTTP_STATUS_SOCK_BIND;
+  if(listen(sockfd.fd, SHTTP_SOCKET_BACKLOG_SIZE))
+    return SHTTP_STATUS_SOCK_LISTEN;
   for(shttp_conn_id i = 0; i < SHTTP_MAX_CONNS; i++) {
     connfds[i].fd = -1;
     connfds[i].events = POLLIN | POLLOUT;
   }
-  return false;
+  return SHTTP_STATUS_OK;
 }
 
-void shttp_conn_deinit(void) {
+shttp_status shttp_conn_deinit(bool force) {
   for(shttp_conn_id i = 0; i < SHTTP_MAX_CONNS; i++) {
     if(connfds[i].fd) {
-      close(connfds[i].fd);
+      if(close(connfds[i].fd) && !force) return SHTTP_STATUS_CONN_FD_CLOSE;
       connfds[i].fd = 0;
     }
   }
-  close(sockfd.fd);
+  if(close(sockfd.fd)) return SHTTP_STATUS_SOCK_FD_CLOSE;
   sockfd.fd = 0;
+  return SHTTP_STATUS_OK;
 }

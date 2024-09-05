@@ -1,5 +1,6 @@
 #include "shttp.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -8,31 +9,46 @@
 #include "conn.h"
 #include "parse/parse.h"
 
-char request[SHTTP_REQUEST_LENGTH];
-char response[SHTTP_RESPONSE_LENGTH];
-
-bool shttp_next(shttp_request req[static 1], shttp_u16 timeout) {
-  shttp_reqi len;
-  req->id = shttp_conn_next(request, &len, SHTTP_REQUEST_LENGTH, timeout);
-  if(!shttp_conn_id_valid(req->id)) return true;
-  shttp_parse_request(req, &(shttp_slice){request, request + len});
-  return false;
+shttp_status shttp_next(shttp_request req[static 1],
+                        shttp_mut_slice buff[static 1], shttp_u16 timeout) {
+  assert(req);
+  assert(buff);
+  assert(buff->begin <= buff->end);
+  shttp_status status;
+  if((status = shttp_conn_next(&req->id, buff, timeout))) return status;
+  if((status = shttp_parse_request(req, (shttp_slice*)buff))) return status;
+  return SHTTP_STATUS_OK;
 }
 
-bool shttp_next_nblk(shttp_request req[static 1]) { return shttp_next(req, 0); }
+shttp_status shttp_next_nblk(shttp_request req[static 1],
+                             shttp_mut_slice buff[static 1]) {
+  assert(req);
+  assert(buff);
+  assert(buff->begin <= buff->end);
+  return shttp_next(req, buff, 0);
+}
 
 void shttp_response_to_request(shttp_response res[static 1],
                                const shttp_request req[static 1]) {
+  assert(res);
+  assert(req);
   res->id = req->id;
   res->code = 200;
   res->version = SHTTP_VERSION_1_1;
 }
 
-void shttp_send(const shttp_response res[static 1]) {
-  shttp_u16 len = shttp_compose_response(response, SHTTP_RESPONSE_LENGTH, res);
-  shttp_conn_send(response, len, res->id);
+shttp_status shttp_send(shttp_mut_slice buff[static 1],
+                        const shttp_response res[static 1]) {
+  assert(res);
+  assert(buff);
+  assert(buff->begin <= buff->end);
+  shttp_status status;
+  shttp_slice s = {.begin = buff->begin};
+  if((status = shttp_compose_response(buff, res))) return status;
+  s.end = buff->end;
+  return shttp_conn_send(s, res->id);
 }
 
-bool shttp_init(void) { return shttp_conn_init(); }
+shttp_status shttp_init(shttp_u16 port) { return shttp_conn_init(port); }
 
-void shttp_deinit(void) { shttp_conn_deinit(); }
+shttp_status shttp_deinit(bool force) { return shttp_conn_deinit(force); }

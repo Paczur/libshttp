@@ -2,16 +2,93 @@
 
 #include "shttp.h"
 
-shttp_response res;
-shttp_request req;
+#define BUFF_LENGTH 500
+static shttp_response res;
+static shttp_request req;
+static char buff[BUFF_LENGTH];
 
 int main(void) {
-  if(shttp_init()) return 1;
-  while(true) {
-    if(shttp_next(&req, 5000)) continue;
-    shttp_response_to_request(&res, &req);
-    shttp_send(&res);
+  shttp_mut_slice sbuff = SHTTP_SLICE(buff);
+  shttp_status status = SHTTP_STATUS_OK;
+
+  for(shttp_u16 port = 1337; port < 65535; port++) {
+    status = shttp_init(port);
+    switch(status) {
+    case SHTTP_STATUS_SOCK_CREATE:
+      puts("Error creating socket");
+      break;
+    case SHTTP_STATUS_SOCK_BIND:
+      puts("Error binding socket to address");
+      break;
+    case SHTTP_STATUS_SOCK_LISTEN:
+      puts("Error setting socket to listen mode");
+      break;
+    case SHTTP_STATUS_OK:
+      printf("Connected to port: %u\n", port);
+      goto success;
+    default:
+      break;
+    }
+    status = shttp_deinit(false);
   }
-  shttp_deinit();
-  return 0;
+  return status;
+success:
+  while(true) {
+    status = shttp_next(&req, &sbuff, 5000);
+    sbuff.begin = buff;
+    sbuff.end = buff + BUFF_LENGTH;
+    switch(status) {
+    case SHTTP_STATUS_SLICE_END:
+      puts("Request to large for slice provided");
+      continue;
+    case SHTTP_STATUS_PREFIX_INVALID:
+    case SHTTP_STATUS_VALUE_INVALID:
+    case SHTTP_STATUS_NEWLINE_EXPECTED:
+    case SHTTP_STATUS_SPACE_EXPECTED:
+      puts("Malformed request");
+      continue;
+    case SHTTP_STATUS_OK:
+      break;
+    default:
+      continue;
+    }
+
+    shttp_response_to_request(&res, &req);
+
+    status = shttp_send(&sbuff, &res);
+    sbuff.begin = buff;
+    sbuff.end = buff + BUFF_LENGTH;
+    switch(status) {
+    case SHTTP_STATUS_CONN_SEND:
+      puts("Couldn't send message");
+      break;
+    case SHTTP_STATUS_CONN_FD_CLOSE:
+      puts("Couldn't close file descriptor used for connection");
+      break;
+    case SHTTP_STATUS_TIMEOUT:
+      puts("Timeout reached waiting for connection");
+      break;
+    case SHTTP_STATUS_CONN_ACCEPT:
+      puts("Error when accepting connection");
+      break;
+    default:
+      break;
+    }
+  }
+  if((status = shttp_deinit(false))) {
+    switch(status) {
+    case SHTTP_STATUS_CONN_FD_CLOSE:
+      puts("Couldn't close connection");
+      break;
+    case SHTTP_STATUS_SOCK_FD_CLOSE:
+      puts("Couldn't close socket");
+      break;
+    default:
+      break;
+    }
+    if((status = shttp_deinit(true))) {
+      return status;
+    }
+  }
+  return SHTTP_STATUS_OK;
 }

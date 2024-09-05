@@ -1,5 +1,6 @@
 #include "parse.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -9,8 +10,11 @@
 #define SHTTP_CMP(t, m) \
   shttp_parse_slice_cmp((shttp_slice){(t), (t) + sizeof(t) - 1}, (m))
 
-static shttp_status shttp_parse_method(shttp_request req[static 1],
-                                       shttp_slice msg[static 1]) {
+SHTTP_UNUSED_RESULT static shttp_status shttp_parse_method(
+  shttp_request req[static 1], shttp_slice msg[static 1]) {
+  assert(req);
+  assert(msg);
+  assert(msg->begin <= msg->end);
 #define X(x)                                                       \
   else if(SHTTP_CMP(STRINGIFY(x), *msg)) {                         \
     if((size_t)(msg->end - msg->begin) < sizeof(STRINGIFY(x)) - 1) \
@@ -29,8 +33,11 @@ static shttp_status shttp_parse_method(shttp_request req[static 1],
 #undef X
 }
 
-static shttp_status shttp_parse_path(shttp_request req[static 1],
-                                     shttp_slice msg[static 1]) {
+SHTTP_UNUSED_RESULT static shttp_status shttp_parse_path(
+  shttp_request req[static 1], shttp_slice msg[static 1]) {
+  assert(req);
+  assert(msg);
+  assert(msg->begin <= msg->end);
   shttp_status status;
   if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
   req->path.begin = msg->begin;
@@ -39,8 +46,11 @@ static shttp_status shttp_parse_path(shttp_request req[static 1],
   return SHTTP_STATUS_OK;
 }
 
-static shttp_status shttp_parse_version(shttp_request req[static 1],
-                                        shttp_slice msg[static 1]) {
+SHTTP_UNUSED_RESULT static shttp_status shttp_parse_version(
+  shttp_request req[static 1], shttp_slice msg[static 1]) {
+  assert(req);
+  assert(msg);
+  assert(msg->begin <= msg->end);
   if((size_t)(msg->end - msg->begin) < sizeof("HTTP/1.0") - 1)
     return SHTTP_STATUS_SLICE_END;
   if(!SHTTP_CMP("HTTP/", *msg)) return SHTTP_STATUS_PREFIX_INVALID;
@@ -62,8 +72,11 @@ static shttp_status shttp_parse_version(shttp_request req[static 1],
   return SHTTP_STATUS_OK;
 }
 
-static shttp_status shttp_parse_start_line(shttp_request req[static 1],
-                                           shttp_slice msg[static 1]) {
+SHTTP_UNUSED_RESULT static shttp_status shttp_parse_start_line(
+  shttp_request req[static 1], shttp_slice msg[static 1]) {
+  assert(req);
+  assert(msg);
+  assert(msg->begin <= msg->end);
   shttp_status status;
   if((status = shttp_parse_method(req, msg))) return status;
   if((status = shttp_parse_slice_space(msg))) return status;
@@ -74,8 +87,11 @@ static shttp_status shttp_parse_start_line(shttp_request req[static 1],
   return SHTTP_STATUS_OK;
 }
 
-static shttp_status shttp_parse_slices(shttp_request req[static 1],
-                                       shttp_slice msg[static 1]) {
+SHTTP_UNUSED_RESULT static shttp_status shttp_parse_slices(
+  shttp_request req[static 1], shttp_slice msg[static 1]) {
+  assert(req);
+  assert(msg);
+  assert(msg->begin <= msg->end);
   shttp_status status;
   const char *t;
   if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
@@ -96,6 +112,8 @@ static shttp_status shttp_parse_slices(shttp_request req[static 1],
 }
 
 shttp_status shttp_parse_slice_newline(shttp_slice s[static 1]) {
+  assert(s);
+  assert(s->begin <= s->end);
   const char *restrict begin = s->begin;
   const char *restrict const end = s->end;
   if(begin == end) return SHTTP_STATUS_SLICE_END;
@@ -114,6 +132,8 @@ shttp_status shttp_parse_slice_newline(shttp_slice s[static 1]) {
 }
 
 shttp_status shttp_parse_slice_space(shttp_slice s[static 1]) {
+  assert(s);
+  assert(s->begin <= s->end);
   const char *restrict const begin = s->begin;
   const char *restrict const end = s->end;
   if(begin == end) return SHTTP_STATUS_SLICE_END;
@@ -123,6 +143,8 @@ shttp_status shttp_parse_slice_space(shttp_slice s[static 1]) {
 }
 
 shttp_status shttp_parse_slice_space_optional(shttp_slice s[static 1]) {
+  assert(s);
+  assert(s->begin <= s->end);
   const char *restrict const begin = s->begin;
   const char *restrict const end = s->end;
   if(begin == end) return SHTTP_STATUS_SLICE_END;
@@ -132,6 +154,9 @@ shttp_status shttp_parse_slice_space_optional(shttp_slice s[static 1]) {
 
 shttp_status shttp_parse_slice_number(shttp_u16 out[static 1],
                                       shttp_slice s[static 1]) {
+  assert(out);
+  assert(s);
+  assert(s->begin <= s->end);
   const char *restrict begin = s->begin;
   const char *restrict const end = s->end;
   if(begin == end) return SHTTP_STATUS_SLICE_END;
@@ -148,6 +173,8 @@ shttp_status shttp_parse_slice_number(shttp_u16 out[static 1],
 }
 
 shttp_status shttp_parse_slice_skip(shttp_slice s[static 1], shttp_u16 x) {
+  assert(s);
+  assert(s->begin <= s->end);
   const char *restrict const begin = s->begin;
   const char *restrict const end = s->end;
   if(begin + x > end) return SHTTP_STATUS_SLICE_END;
@@ -156,6 +183,8 @@ shttp_status shttp_parse_slice_skip(shttp_slice s[static 1], shttp_u16 x) {
 }
 
 shttp_status shttp_parse_slice_skip_until(shttp_slice s[static 1], char mark) {
+  assert(s);
+  assert(s->begin <= s->end);
   const char *restrict begin = s->begin;
   const char *restrict const end = s->end;
   if(begin == end) return SHTTP_STATUS_SLICE_END;
@@ -172,6 +201,8 @@ shttp_status shttp_parse_slice_skip_until(shttp_slice s[static 1], char mark) {
 
 shttp_status shttp_parse_slice_skip_until_or(shttp_slice s[static 1],
                                              char marks[static 3]) {
+  assert(s);
+  assert(s->begin <= s->end);
   const char *restrict begin = s->begin;
   const char *restrict const end = s->end;
   if(begin == end) return SHTTP_STATUS_SLICE_END;
@@ -189,6 +220,8 @@ shttp_status shttp_parse_slice_skip_until_or(shttp_slice s[static 1],
 }
 
 shttp_status shttp_parse_slice_skip_until_newline(shttp_slice s[static 1]) {
+  assert(s);
+  assert(s->begin <= s->end);
   shttp_status status;
   const char *const t = s->begin;
   if((status = shttp_parse_slice_skip_until(s, '\n')))
@@ -201,6 +234,8 @@ shttp_status shttp_parse_slice_skip_until_newline(shttp_slice s[static 1]) {
 }
 
 shttp_status shttp_parse_slice_skip_until_space(shttp_slice s[static 1]) {
+  assert(s);
+  assert(s->begin <= s->end);
   shttp_status status;
   if((status = shttp_parse_slice_skip_until(s, ' ')))
     return SHTTP_STATUS_SPACE_EXPECTED;
@@ -208,6 +243,8 @@ shttp_status shttp_parse_slice_skip_until_space(shttp_slice s[static 1]) {
 }
 
 shttp_status shttp_parse_slice_skip_past(shttp_slice s[static 1], char end) {
+  assert(s);
+  assert(s->begin <= s->end);
   shttp_status status;
   if((status = shttp_parse_slice_skip_until(s, end))) return status;
   s->begin++;
@@ -216,6 +253,9 @@ shttp_status shttp_parse_slice_skip_past(shttp_slice s[static 1], char end) {
 
 shttp_status shttp_parse_slice_skip_past_or(shttp_slice s[static 1],
                                             char end[static 3]) {
+  assert(s);
+  assert(end);
+  assert(s->begin <= s->end);
   shttp_status status;
   if((status = shttp_parse_slice_skip_until_or(s, end))) return status;
   s->begin++;
@@ -223,6 +263,8 @@ shttp_status shttp_parse_slice_skip_past_or(shttp_slice s[static 1],
 }
 
 shttp_status shttp_parse_slice_skip_past_newline(shttp_slice s[static 1]) {
+  assert(s);
+  assert(s->begin <= s->end);
   shttp_status status;
   if((status = shttp_parse_slice_skip_past(s, '\n')))
     return SHTTP_STATUS_NEWLINE_EXPECTED;
@@ -230,40 +272,62 @@ shttp_status shttp_parse_slice_skip_past_newline(shttp_slice s[static 1]) {
 }
 
 shttp_status shttp_parse_slice_skip_past_space(shttp_slice s[static 1]) {
+  assert(s);
+  assert(s->begin <= s->end);
   shttp_status status;
   if((status = shttp_parse_slice_skip_past(s, ' ')))
     return SHTTP_STATUS_SPACE_EXPECTED;
   return SHTTP_STATUS_OK;
 }
 
-SHTTP_PURE bool shttp_parse_slice_cmp(shttp_slice s1, shttp_slice s2) {
+bool shttp_parse_slice_cmp(shttp_slice s1, shttp_slice s2) {
+  assert(s1.begin <= s1.end);
+  assert(s2.begin <= s2.end);
   const char *restrict begin1 = s1.begin;
   const char *restrict const end1 = s1.end;
   const char *restrict begin2 = s2.begin;
   const char *restrict const end2 = s2.end;
-  while(begin1 != end1 && begin2 != end2) {
-    if(*begin1 != *begin2) return false;
-    begin1++;
-    begin2++;
+  if(end1 - begin1 < end2 - begin2) {
+    while(begin1 != end1) {
+      if(*begin1 != *begin2) return false;
+      begin1++;
+      begin2++;
+    }
+  } else {
+    while(begin2 != end2) {
+      if(*begin1 != *begin2) return false;
+      begin1++;
+      begin2++;
+    }
   }
   return true;
 }
 
-SHTTP_PURE bool shttp_parse_slice_cmp_until(shttp_slice s1, shttp_slice s2,
-                                            char mark) {
+bool shttp_parse_slice_cmp_until(shttp_slice s1, shttp_slice s2, char mark) {
+  assert(s2.begin <= s2.end);
+  assert(s1.begin <= s1.end);
   const char *restrict begin1 = s1.begin;
   const char *restrict const end1 = s1.end;
   const char *restrict begin2 = s2.begin;
   const char *restrict const end2 = s2.end;
-  while(begin1 != end1 && begin2 != end2 && *begin1 != mark &&
-        *begin2 != mark) {
-    if(*begin1 != *begin2) return false;
+  if(end1 - begin1 < end2 - begin2) {
+    while(begin1 != end1 && *begin1 != mark && *begin2 != mark) {
+      if(*begin1 != *begin2) return false;
+    }
+  } else {
+    while(begin2 != end2 && *begin1 != mark && *begin2 != mark) {
+      if(*begin1 != *begin2) return false;
+    }
   }
   return true;
 }
 
 shttp_status shttp_parse_header_next(shttp_slice out[static 1],
                                      shttp_slice s[static 1]) {
+  assert(out);
+  assert(s);
+  assert(out->begin <= out->end);
+  assert(s->begin <= s->end);
   shttp_status status;
   const char *restrict const begin = s->begin;
   const char *restrict const end = s->end;
@@ -277,6 +341,10 @@ shttp_status shttp_parse_header_next(shttp_slice out[static 1],
 
 shttp_status shttp_parse_header_key(shttp_slice out[static 1],
                                     shttp_slice s[static 1]) {
+  assert(s);
+  assert(out);
+  assert(out->begin <= out->end);
+  assert(s->begin <= s->end);
   shttp_status status;
   const char *restrict const begin = s->begin;
   const char *restrict const end = s->end;
@@ -291,6 +359,10 @@ shttp_status shttp_parse_header_key(shttp_slice out[static 1],
 
 shttp_status shttp_parse_header_value(shttp_slice out[static 1],
                                       shttp_slice s[static 1]) {
+  assert(out);
+  assert(s);
+  assert(out->begin <= out->end);
+  assert(s->begin <= s->end);
   const char *t;
   shttp_status status;
   const char *restrict begin = s->begin;
@@ -300,16 +372,23 @@ shttp_status shttp_parse_header_value(shttp_slice out[static 1],
   t = begin;
   if((status = shttp_parse_slice_skip_until_or(s, " \n,"))) return status;
   begin = s->begin;
-  if(begin - t > 0 && begin[-1] == '\r') begin--;
-  out->end = begin;
-  if(*begin == ',') begin++;
+  if(begin - t > 0 && begin[-1] == '\r') {
+    out->end = begin - 1;
+  } else {
+    out->end = begin;
+  }
+  if(*begin == ',' || *begin == '\n') begin++;
   s->begin = begin;
-  if((status = shttp_parse_slice_space_optional(s))) return status;
+  if((status = shttp_parse_slice_space_optional(s)) != SHTTP_STATUS_SLICE_END)
+    return status;
   return SHTTP_STATUS_OK;
 }
 
 shttp_status shttp_parse_request(shttp_request req[static 1],
                                  shttp_slice msg[static 1]) {
+  assert(req);
+  assert(msg);
+  assert(msg->begin <= msg->end);
   shttp_status status;
   if((status = shttp_parse_start_line(req, msg))) return status;
   if((status = shttp_parse_slices(req, msg))) return status;

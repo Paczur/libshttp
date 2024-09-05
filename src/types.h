@@ -101,6 +101,14 @@ typedef enum shttp_status {
   SHTTP_STATUS_VALUE_INVALID,
   SHTTP_STATUS_NEWLINE_EXPECTED,
   SHTTP_STATUS_SPACE_EXPECTED,
+  SHTTP_STATUS_SOCK_CREATE,
+  SHTTP_STATUS_SOCK_BIND,
+  SHTTP_STATUS_SOCK_LISTEN,
+  SHTTP_STATUS_SOCK_FD_CLOSE,
+  SHTTP_STATUS_CONN_ACCEPT,
+  SHTTP_STATUS_CONN_SEND,
+  SHTTP_STATUS_CONN_FD_CLOSE,
+  SHTTP_STATUS_TIMEOUT,
 } shttp_status;
 
 typedef shttp_u8 shttp_conn_id;
@@ -215,6 +223,8 @@ typedef struct shttp_response {
   shttp_conn_id id;
   shttp_version version;
   shttp_code code;
+  shttp_slice headers;
+  shttp_slice body;
 } SHTTP_PACKED shttp_response;
 
 #endif
