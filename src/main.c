@@ -3,16 +3,19 @@
 #include "shttp.h"
 
 #define BUFF_LENGTH 500
+#define MAX_CONNS 10
 static shttp_response res;
 static shttp_request req;
 static char buff[BUFF_LENGTH];
+static struct pollfd conns[MAX_CONNS];
 
 int main(void) {
+  const shttp_mut_slice csbuff = SHTTP_SLICE(buff);
   shttp_mut_slice sbuff = SHTTP_SLICE(buff);
   shttp_status status = SHTTP_STATUS_OK;
 
   for(shttp_u16 port = 1337; port < 65535; port++) {
-    status = shttp_init(port);
+    status = shttp_init(port, conns, MAX_CONNS);
     switch(status) {
     case SHTTP_STATUS_SOCK_CREATE:
       puts("Error creating socket");
@@ -35,11 +38,10 @@ int main(void) {
 success:
   while(true) {
     status = shttp_next(&req, &sbuff, 5000);
-    sbuff.begin = buff;
-    sbuff.end = buff + BUFF_LENGTH;
+    sbuff = csbuff;
     switch(status) {
     case SHTTP_STATUS_SLICE_END:
-      puts("Request to large for slice provided");
+      puts("Request too large for slice provided");
       continue;
     case SHTTP_STATUS_PREFIX_INVALID:
     case SHTTP_STATUS_VALUE_INVALID:
@@ -56,8 +58,7 @@ success:
     shttp_response_to_request(&res, &req);
 
     status = shttp_send(&sbuff, &res);
-    sbuff.begin = buff;
-    sbuff.end = buff + BUFF_LENGTH;
+    sbuff = csbuff;
     switch(status) {
     case SHTTP_STATUS_CONN_SEND:
       puts("Couldn't send message");

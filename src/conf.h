@@ -1,10 +1,11 @@
 #ifndef CONF_H
 #define CONF_H
 
-#define SHTTP_MAX_CONNS 10
 #define SHTTP_SOCKET_BACKLOG_SIZE 2
+#define SHTTP_CONN_CHECKS_PER_SECOND 10  // (1, 256)
 
 // Attributes:
+
 #define SHTTP_UNUSED_RESULT __attribute__((warn_unused_result))
 #define SHTTP_PACKED __attribute__((__packed__))
 #define SHTTP_PURE __attribute__((pure))

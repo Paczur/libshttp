@@ -1,6 +1,8 @@
 #ifndef SHTTP_CONN_H
 #define SHTTP_CONN_H
 
+#include <poll.h>
+
 #include "types.h"
 
 // returns: CONN_FD_CLOSE
@@ -25,8 +27,12 @@ shttp_status shttp_conn_next_nblk(shttp_conn_id id[static 1],
 SHTTP_UNUSED_RESULT shttp_status shttp_conn_send(shttp_slice res,
                                                  shttp_conn_id id);
 
+void shttp_conn_fd_set(struct pollfd conns[static 1], shttp_u16 conn_count);
+
 // returns: SOCKET_CREATE, SOCKET_BIND, SOCKET_LISTEN
-SHTTP_UNUSED_RESULT shttp_status shttp_conn_init(shttp_u16 port);
+SHTTP_UNUSED_RESULT shttp_status shttp_conn_init(shttp_u16 port,
+                                                 struct pollfd conns[static 1],
+                                                 shttp_u16 conn_count);
 
 // returns: CONN_FD_CLOSE, SOCK_FD_CLOSE
 SHTTP_UNUSED_RESULT shttp_status shttp_conn_deinit(bool force);

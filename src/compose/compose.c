@@ -137,6 +137,17 @@ shttp_status shttp_compose_slice_cpy(shttp_mut_slice msg[static 1],
   }
 }
 
+shttp_status shttp_compose_slice_cpy_char(shttp_mut_slice msg[static 1],
+                                          char c) {
+  assert(msg);
+  assert(msg->begin <= msg->end);
+  char *restrict beginm = msg->begin;
+  char *restrict const endm = msg->end;
+  if(endm == beginm) return SHTTP_STATUS_SLICE_END;
+  *(beginm++) = c;
+  return SHTTP_STATUS_OK;
+}
+
 shttp_status shttp_compose_response(shttp_mut_slice msg[static 1],
                                     const shttp_response res[static 1]) {
   assert(msg->begin <= msg->end);

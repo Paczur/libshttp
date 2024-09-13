@@ -49,6 +49,10 @@ shttp_status shttp_send(shttp_mut_slice buff[static 1],
   return shttp_conn_send(s, res->id);
 }
 
-shttp_status shttp_init(shttp_u16 port) { return shttp_conn_init(port); }
+shttp_status shttp_init(shttp_u16 port, struct pollfd conns[static 1],
+                        shttp_u16 conn_count) {
+  assert(conns);
+  return shttp_conn_init(port, conns, conn_count);
+}
 
 shttp_status shttp_deinit(bool force) { return shttp_conn_deinit(force); }

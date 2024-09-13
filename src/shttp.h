@@ -1,6 +1,8 @@
 #ifndef SHTTP_H
 #define SHTTP_H
 
+#include <poll.h>
+
 #include "types.h"
 
 void shttp_response_to_request(shttp_response res[static 1],
@@ -24,7 +26,9 @@ SHTTP_UNUSED_RESULT shttp_status shttp_send(shttp_mut_slice buff[static 1],
                                             const shttp_response res[static 1]);
 
 // returns: SOCK_CREATE, SOCK_BIND, SOCK_LISTEN
-SHTTP_UNUSED_RESULT shttp_status shttp_init(shttp_u16 port);
+SHTTP_UNUSED_RESULT shttp_status shttp_init(shttp_u16 port,
+                                            struct pollfd conns[static 1],
+                                            shttp_u16 conn_count);
 
 // returns: CONN_FD_CLOSE, SOCK_FD_CLOSE
 SHTTP_UNUSED_RESULT shttp_status shttp_deinit(bool force);
