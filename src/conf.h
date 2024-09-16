@@ -1,5 +1,5 @@
-#ifndef CONF_H
-#define CONF_H
+#ifndef SHTTP_CONF_H
+#define SHTTP_CONF_H
 
 #define SHTTP_SOCKET_BACKLOG_SIZE 2
 #define SHTTP_CONN_CHECKS_PER_SECOND 10  // (1, 256)

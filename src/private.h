@@ -1,5 +1,5 @@
-#ifndef PRIVATE_H
-#define PRIVATE_H
+#ifndef SHTTP_PRIVATE_H
+#define SHTTP_PRIVATE_H
 
 #define STRINGIFY(x) #x
 #define MIN(x, y) (((x) > (y)) ? (y) : (x))

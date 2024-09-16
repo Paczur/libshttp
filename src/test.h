@@ -1,5 +1,5 @@
-#ifndef H_TEST
-#define H_TEST
+#ifndef SHTTP_TEST_H
+#define SHTTP_TEST_H
 
 #define TEST(function, case) static void function##_test_##case(void **state)
 #define ADD(function, case) cmocka_unit_test(function##_test_##case)
@@ -10,10 +10,12 @@
 #define assert_int_bigger_or_equal(x, y) assert_int_bigger(x + 1, y);
 #define assert_int_smaller_or_equal(x, y) assert_int_smaller(x, y + 1);
 
+// clang-format off
 #include <setjmp.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <cmocka.h>
+// clang-format on
 
 #endif

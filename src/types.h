@@ -1,6 +1,7 @@
 #ifndef SHTTP_TYPES_H
 #define SHTTP_TYPES_H
 
+#include <poll.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -109,6 +110,10 @@ typedef enum shttp_status {
   SHTTP_STATUS_TIMEOUT,
 } shttp_status;
 
+/* Changing those to 65535 and shttp_u16 respectively
+ * increases memory usage in some functions drastically
+ */
+#define SHTTP_CONN_ID_MAX 255
 typedef shttp_u8 shttp_conn_id;
 
 typedef shttp_u16 shttp_reqi;
@@ -209,20 +214,30 @@ typedef struct shttp_mut_slice {
   char *end;
 } SHTTP_PACKED shttp_mut_slice;
 
+// int is used for fds in linux, so we keep it consistent
+typedef struct shttp_socket {
+  int sock;
+  int *conns;
+  shttp_conn_id conn_count;
+} shttp_socket;
+
 typedef struct shttp_request {
   shttp_version version;
   shttp_method method;
   shttp_conn_id id;
+  shttp_socket *sock;
   shttp_slice path;
   shttp_slice headers;
 } SHTTP_PACKED shttp_request;
 
 typedef struct shttp_response {
-  shttp_conn_id id;
   shttp_version version;
   shttp_code code;
+  shttp_conn_id id;
+  shttp_socket *sock;
   shttp_slice headers;
   shttp_slice body;
 } SHTTP_PACKED shttp_response;
 
 #endif
+
