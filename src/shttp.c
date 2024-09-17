@@ -55,6 +55,14 @@ shttp_status shttp_send(shttp_mut_slice buff[static 1],
   return shttp_sock_send(res->sock, s, res->id);
 }
 
+shttp_status shttp_close(shttp_socket sock[static 1], shttp_conn_id id) {
+  assert(sock);
+  assert(sock->conns);
+  assert(sock->conn_count > 0);
+  assert(id < sock->conn_count);
+  return shttp_sock_close(sock, id);
+}
+
 shttp_status shttp_init(shttp_socket sock[static 1], shttp_u16 port) {
   assert(sock);
   assert(sock->conns);

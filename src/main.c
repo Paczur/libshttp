@@ -66,9 +66,6 @@ success:
     case SHTTP_STATUS_CONN_SEND:
       puts("Couldn't send message");
       break;
-    case SHTTP_STATUS_CONN_FD_CLOSE:
-      puts("Couldn't close file descriptor used for connection");
-      break;
     case SHTTP_STATUS_TIMEOUT:
       puts("Timeout reached waiting for connection");
       break;
@@ -78,6 +75,8 @@ success:
     default:
       break;
     }
+    status = shttp_close(&sock, res.id);
+    if(status) puts("Couldn't close connection");
   }
   if((status = shttp_deinit(&sock, false))) {
     switch(status) {

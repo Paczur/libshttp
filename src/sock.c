@@ -13,12 +13,6 @@
 #include "parse/parse.h"
 #include "private.h"
 
-static shttp_status shttp_sock_close(int fd[static 1]) {
-  if(close(*fd)) return SHTTP_STATUS_CONN_FD_CLOSE;
-  *fd = -1;
-  return SHTTP_STATUS_OK;
-}
-
 shttp_status shttp_sock_accept(shttp_socket sock[static 1], shttp_u16 timeout) {
   assert(sock);
   assert(sock->conns);
@@ -120,14 +114,24 @@ shttp_status shttp_sock_send(shttp_socket sock[static 1], shttp_slice res,
   assert(sock);
   assert(sock->conns);
   assert(sock->conn_count > 0);
-  shttp_status status;
+  assert(id < sock->conn_count);
   if(send(sock->conns[id], res.begin, res.end - res.begin - 1, 0) == -1)
     return SHTTP_STATUS_CONN_SEND;
-  if(((status = shttp_sock_close(&sock->conns[id])))) return status;
   if(shttp_sock_accept_nblk(sock)) {
     /* Failing here isn't fatal and happens often
      * don't need to notify user */
   }
+  return SHTTP_STATUS_OK;
+}
+
+shttp_status shttp_sock_close(shttp_socket sock[static 1], shttp_conn_id id) {
+  assert(sock);
+  assert(sock->conns);
+  assert(sock->conn_count > 0);
+  assert(id < sock->conn_count);
+  if(sock->conns[id] < 0 || close(sock->conns[id]))
+    return SHTTP_STATUS_CONN_FD_CLOSE;
+  sock->conns[id] = -1;
   return SHTTP_STATUS_OK;
 }
 

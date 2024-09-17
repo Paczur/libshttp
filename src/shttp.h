@@ -19,9 +19,13 @@ SHTTP_UNUSED_RESULT shttp_status shttp_next(shttp_request req[static 1],
 SHTTP_UNUSED_RESULT shttp_status
 shttp_next_nblk(shttp_request req[static 1], shttp_mut_slice buff[static 1]);
 
-// returns: CONN_SEND, CONN_FD_CLOSE, TIMEOUT, CONN_ACCEPT
+// returns: CONN_SEND, TIMEOUT, CONN_ACCEPT
 SHTTP_UNUSED_RESULT shttp_status shttp_send(shttp_mut_slice buff[static 1],
                                             const shttp_response res[static 1]);
+
+// returns: CONN_FD_CLOSE
+SHTTP_UNUSED_RESULT shttp_status shttp_close(shttp_socket sock[static 1],
+                                             shttp_conn_id id);
 
 // returns: SOCK_CREATE, SOCK_BIND, SOCK_LISTEN
 SHTTP_UNUSED_RESULT shttp_status shttp_init(shttp_socket sock[static 1],

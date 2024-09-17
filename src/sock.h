@@ -24,10 +24,14 @@ shttp_status shttp_sock_next_nblk(shttp_socket sock[restrict 1],
                                   shttp_conn_id id[static 1],
                                   shttp_mut_slice req[static 1]);
 
-// returns: CONN_SEND, CONN_FD_CLOSE, TIMEOUT, CONN_ACCEPT
+// returns: CONN_SEND, TIMEOUT, CONN_ACCEPT
 SHTTP_UNUSED_RESULT shttp_status shttp_sock_send(shttp_socket sock[restrict 1],
                                                  shttp_slice res,
                                                  shttp_conn_id id);
+
+// returns: CONN_FD_CLOSE
+SHTTP_UNUSED_RESULT shttp_status shttp_sock_close(shttp_socket sock[static 1],
+                                                  shttp_conn_id id);
 
 // returns: SOCKET_CREATE, SOCKET_BIND, SOCKET_LISTEN
 SHTTP_UNUSED_RESULT shttp_status shttp_sock_init(shttp_socket sock[restrict 1],
