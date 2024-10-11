@@ -82,7 +82,10 @@
   X(NOT_EXTENDED)                    \
   X(NETWORK_AUTHENTICATION_REQUIRED)
 
-#define SHTTP_SLICE(x) {x, x + sizeof(x) - 1}
+#define SHTTP_SLICE(x) \
+  (shttp_slice) { x, x + sizeof(x) - 1 }
+#define SHTTP_MUT_SLICE(x) \
+  (shttp_mut_slice) { x, x + sizeof(x) - 1 }
 
 typedef uint_least8_t shttp_u8;
 typedef uint_least16_t shttp_u16;
@@ -101,8 +104,10 @@ typedef enum shttp_status {
   SHTTP_STATUS_NEWLINE_EXPECTED,
   SHTTP_STATUS_SPACE_EXPECTED,
   SHTTP_STATUS_SOCK_CREATE,
+  SHTTP_STATUS_SOCK_OPT,
   SHTTP_STATUS_SOCK_BIND,
   SHTTP_STATUS_SOCK_LISTEN,
+  SHTTP_STATUS_SOCK_SHUTDOWN,
   SHTTP_STATUS_SOCK_FD_CLOSE,
   SHTTP_STATUS_CONN_ACCEPT,
   SHTTP_STATUS_CONN_SEND,

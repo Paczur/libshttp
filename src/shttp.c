@@ -15,10 +15,8 @@ shttp_status shttp_next(shttp_request req[static 1],
   assert(req->sock);
   assert(buff);
   assert(buff->begin <= buff->end);
-  shttp_status status;
-  if((status = shttp_sock_next(req->sock, &req->id, buff, timeout)))
-    return status;
-  if((status = shttp_parse_request(req, (shttp_slice *)buff))) return status;
+  SHTTP_PROP(shttp_sock_next(req->sock, &req->id, buff, timeout));
+  SHTTP_PROP(shttp_parse_request(req, (shttp_slice *)buff));
   return SHTTP_STATUS_OK;
 }
 
@@ -48,9 +46,8 @@ shttp_status shttp_send(shttp_mut_slice buff[static 1],
   assert(res->sock);
   assert(buff);
   assert(buff->begin <= buff->end);
-  shttp_status status;
   shttp_slice s = {.begin = buff->begin};
-  if((status = shttp_compose_response(buff, res))) return status;
+  SHTTP_PROP(shttp_compose_response(buff, res));
   s.end = buff->end;
   return shttp_sock_send(res->sock, s, res->id);
 }

@@ -3,6 +3,7 @@ BUILD=build
 TESTB=bin/tests
 DIRS=$(BIN) $(BUILD)
 SRC=src
+EX=$(BIN)/examples
 
 NO_WARN=-Wno-packed-bitfield-compat
 WARN=-Wall -Wextra -Werror -Wno-error=cpp -Wunused-result -Wvla -Wshadow -Wstrict-prototypes -Wsuggest-attribute=pure -Wsuggest-attribute=const $(NO_WARN)
@@ -13,9 +14,11 @@ LIBS=$(shell pkg-config --cflags --libs cmocka)
 RELEASE=-O3 -s -pipe -flto=4 -fwhole-program -D NDEBUG
 CFLAGS=$(WARN) -march=native -std=gnu99 $(LIBS)
 
+EXAMPLES=$(wildcard $(SRC)/examples/*.c)
+BIN_EXAMPLES=$(patsubst $(SRC)/examples/%.c, $(EX)/%, $(EXAMPLES))
 TESTS=$(wildcard $(SRC)/*.test.c $(SRC)/*/*.test.c)
 BIN_TESTS=$(patsubst %/,$(TESTB)/%.test,$(dir $(subst $(SRC)/,,$(TESTS))))
-SOURCES=$(filter-out $(TESTS), $(wildcard $(SRC)/*.c $(SRC)/**/*.c))
+SOURCES=$(filter-out $(EXAMPLES), $(filter-out $(TESTS), $(wildcard $(SRC)/*.c $(SRC)/**/*.c)))
 OBJECTS=$(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(SOURCES))
 DEPENDS=$(patsubst $(SRC)/%.c,$(BUILD)/%.d,$(SOURCES))
 
@@ -24,16 +27,16 @@ all: release
 $(shell mkdir -p $(dir $(DEPENDS)))
 -include $(DEPENDS)
 
-.PHONY: all install uninstall release debug clean
+.PHONY: all install uninstall release debug clean check tests
 MAKEFLAGS := --jobs=$(shell nproc)
 MAKEFLAGS += --output-sync=target
 $(VERBOSE).SILENT:
 
 release: CFLAGS += $(RELEASE)
-release: binaries
+release: examples
 
 debug: CFLAGS += $(DEBUG)
-debug: tests binaries
+debug: tests examples
 
 check: tests
 check:
@@ -44,9 +47,12 @@ check:
 clean:
 	rm -rf $(BIN) $(BUILD) $(CCACHE_DIR)
 
-binaries: $(BIN)/libshttp
+examples: $(BIN_EXAMPLES)
 
 tests: $(BIN_TESTS)
+
+$(EX)/%:$(SRC)/examples/%.c $(OBJECTS) | $(EX)
+	$(CC) $(CFLAGS) -MMD -MP -o $@ $^
 
 $(BIN)/libshttp: $(OBJECTS) | $(BIN)
 	$(CC) $(CFLAGS) -MMD -MP -o $@ $^
@@ -70,3 +76,6 @@ $(BUILD):
 
 $(TESTB):
 	mkdir -p $(TESTB)
+
+$(EX):
+	mkdir -p $(EX)

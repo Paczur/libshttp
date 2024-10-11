@@ -14,24 +14,22 @@ SHTTP_UNUSED_RESULT static shttp_status shttp_compose_version(
   assert(res);
   assert(msg);
   assert(msg->begin <= msg->end);
-  shttp_status status;
-  if((status = SHTTP_CPY(msg, "HTTP/"))) return status;
+  SHTTP_PROP(SHTTP_CPY(msg, "HTTP/"));
   switch(res->version) {
   case SHTTP_VERSION_1_0:
-    if((status = SHTTP_CPY(msg, "1.0"))) return status;
+    SHTTP_PROP(SHTTP_CPY(msg, "1.0"));
     break;
   case SHTTP_VERSION_1_1:
-    if((status = SHTTP_CPY(msg, "1.1"))) return status;
+    SHTTP_PROP(SHTTP_CPY(msg, "1.1"));
     break;
   case SHTTP_VERSION_2_0:
-    if((status = SHTTP_CPY(msg, "2.0"))) return status;
+    SHTTP_PROP(SHTTP_CPY(msg, "2.0"));
     break;
   case SHTTP_VERSION_3_0:
-    if((status = SHTTP_CPY(msg, "3.0"))) return status;
+    SHTTP_PROP(SHTTP_CPY(msg, "3.0"));
     break;
   default:
     return SHTTP_STATUS_VALUE_INVALID;
-    break;
   }
   return SHTTP_STATUS_OK;
 }
@@ -41,7 +39,6 @@ SHTTP_UNUSED_RESULT static shttp_status shttp_compose_code(
   assert(msg);
   assert(res);
   assert(msg->begin <= msg->end);
-  shttp_status status;
   char *restrict beginm = msg->begin;
   char *restrict const endm = msg->end;
   shttp_code num = res->code;
@@ -66,9 +63,9 @@ SHTTP_UNUSED_RESULT static shttp_status shttp_compose_code(
   *(beginm++) = ' ';
   msg->begin = beginm;
 
-#define X(x)                                         \
-  case SHTTP_CODE_##x:                               \
-    if((status = SHTTP_CPY(msg, #x))) return status; \
+#define X(x)                        \
+  case SHTTP_CODE_##x:              \
+    SHTTP_PROP(SHTTP_CPY(msg, #x)); \
     break;
   switch(res->code) { SHTTP_X_CODES }
 #undef X
@@ -81,13 +78,11 @@ SHTTP_UNUSED_RESULT static shttp_resi shttp_compose_start_line(
   assert(msg);
   assert(res);
   assert(msg->begin <= msg->end);
-  shttp_status status;
-  if((status = shttp_compose_version(msg, res))) return status;
+  SHTTP_PROP(shttp_compose_version(msg, res));
   if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
   *(msg->begin++) = ' ';
-  if((status = shttp_compose_code(msg, res))) return status;
-  if((status = shttp_compose_slice_newline(msg))) return status;
-  msg->end = msg->begin;
+  SHTTP_PROP(shttp_compose_code(msg, res));
+  SHTTP_PROP(shttp_compose_slice_newline(msg));
   return SHTTP_STATUS_OK;
 }
 
@@ -116,7 +111,7 @@ shttp_status shttp_compose_slice_cpy(shttp_mut_slice msg[static 1],
   char *restrict const endm = msg->end;
   const char *restrict begint = slice.begin;
   const char *restrict const endt = slice.end;
-  if(endm == beginm) return SHTTP_STATUS_SLICE_END;
+  if(endm == beginm && endt != begint) return SHTTP_STATUS_SLICE_END;
 
   if(endm - beginm < endt - begint) {
     while(beginm != endm) {
@@ -150,6 +145,14 @@ shttp_status shttp_compose_slice_cpy_char(shttp_mut_slice msg[static 1],
 
 shttp_status shttp_compose_response(shttp_mut_slice msg[static 1],
                                     const shttp_response res[static 1]) {
+  char *restrict const beginm = msg->begin;
   assert(msg->begin <= msg->end);
-  return shttp_compose_start_line(msg, res);
+  SHTTP_PROP(shttp_compose_start_line(msg, res));
+  SHTTP_PROP(shttp_compose_slice_cpy(msg, *(shttp_slice *)&res->headers));
+  if(res->headers.begin != res->headers.end)
+    SHTTP_PROP(shttp_compose_slice_newline(msg));
+  SHTTP_PROP(shttp_compose_slice_cpy(msg, *(shttp_slice *)&res->body));
+  msg->end = msg->begin;
+  msg->begin = beginm;
+  return SHTTP_STATUS_OK;
 }

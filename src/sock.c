@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
+#include <netinet/tcp.h>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <time.h>
@@ -49,7 +50,7 @@ shttp_status shttp_sock_next(shttp_socket sock[static 1],
   struct pollfd connfds[SHTTP_CONN_ID_MAX];
   for(shttp_conn_id i = 0; i < sock->conn_count; i++) {
     connfds[i].fd = sock->conns[i];
-    connfds[i].events = POLLIN | POLLOUT;
+    connfds[i].events = POLLIN;
   }
   ssize_t l;
   const struct timespec reqt = {
@@ -71,7 +72,17 @@ shttp_status shttp_sock_next(shttp_socket sock[static 1],
     }
     for(shttp_conn_id i = 0; i < sock->conn_count; i++) {
       if(sock->conns[i] && poll(connfds + i, 1, 0) > 0) {
+        if(connfds[i].revents & (POLLERR | POLLHUP | POLLPRI)) {
+          if(shttp_sock_close(sock, i)) {
+            sock->conns[i] = -1;
+          }
+          connfds[i].fd = -1;
+          connfds[i].events = 0;
+          continue;
+        }
+        connfds[i].revents = 0;
         l = recv(sock->conns[i], req->begin, req->end - req->begin, 0);
+        if(l < 1) continue;
         req->end = req->begin + (l < 0 ? 0 : l);
         *id = i;
         return SHTTP_STATUS_OK;
@@ -115,7 +126,7 @@ shttp_status shttp_sock_send(shttp_socket sock[static 1], shttp_slice res,
   assert(sock->conns);
   assert(sock->conn_count > 0);
   assert(id < sock->conn_count);
-  if(send(sock->conns[id], res.begin, res.end - res.begin - 1, 0) == -1)
+  if(send(sock->conns[id], res.begin, res.end - res.begin, 0) == -1)
     return SHTTP_STATUS_CONN_SEND;
   if(shttp_sock_accept_nblk(sock)) {
     /* Failing here isn't fatal and happens often
@@ -129,8 +140,9 @@ shttp_status shttp_sock_close(shttp_socket sock[static 1], shttp_conn_id id) {
   assert(sock->conns);
   assert(sock->conn_count > 0);
   assert(id < sock->conn_count);
-  if(sock->conns[id] < 0 || close(sock->conns[id]))
-    return SHTTP_STATUS_CONN_FD_CLOSE;
+  assert(sock->conns[id] >= 0);
+  if(shutdown(sock->conns[id], SHUT_RDWR)) return SHTTP_STATUS_SOCK_SHUTDOWN;
+  if(close(sock->conns[id])) return SHTTP_STATUS_CONN_FD_CLOSE;
   sock->conns[id] = -1;
   return SHTTP_STATUS_OK;
 }
@@ -139,6 +151,7 @@ shttp_status shttp_sock_init(shttp_socket sock[static 1], shttp_u16 port) {
   assert(sock);
   assert(sock->conns);
   assert(sock->conn_count > 0);
+  int flag = 1;
   struct sockaddr_in servaddr = {.sin_family = AF_INET};
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
   servaddr.sin_port = htons(port);
@@ -146,6 +159,9 @@ shttp_status shttp_sock_init(shttp_socket sock[static 1], shttp_u16 port) {
   for(shttp_conn_id i = 0; i < sock->conn_count; i++) sock->conns[i] = -1;
   if(((sock->sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0))) < 0)
     return SHTTP_STATUS_SOCK_CREATE;
+  if(setsockopt(sock->sock, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
+                sizeof(flag)))
+    return SHTTP_STATUS_SOCK_OPT;
   if(bind(sock->sock, (struct sockaddr *)&servaddr, sizeof(servaddr)))
     return SHTTP_STATUS_SOCK_BIND;
   if(listen(sock->sock, SHTTP_SOCKET_BACKLOG_SIZE))

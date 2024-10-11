@@ -1,5 +1,5 @@
-#ifndef PARSE_H
-#define PARSE_H
+#ifndef SHTTP_PARSE_H
+#define SHTTP_PARSE_H
 
 #include "../types.h"
 

@@ -33,7 +33,7 @@ SHTTP_UNUSED_RESULT shttp_status shttp_sock_send(shttp_socket sock[restrict 1],
 SHTTP_UNUSED_RESULT shttp_status shttp_sock_close(shttp_socket sock[static 1],
                                                   shttp_conn_id id);
 
-// returns: SOCKET_CREATE, SOCKET_BIND, SOCKET_LISTEN
+// returns: SOCK_CREATE, SOCK_BIND, SOCK_LISTEN, SOCK_BIND
 SHTTP_UNUSED_RESULT shttp_status shttp_sock_init(shttp_socket sock[restrict 1],
                                                  shttp_u16 port);
 
