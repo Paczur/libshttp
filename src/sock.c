@@ -64,6 +64,8 @@ shttp_status shttp_sock_next(shttp_socket sock[static 1],
         if(nanosleep(&rem, &rem2) != -1) break;
         if(nanosleep(&rem2, &rem) != -1) break;
       }
+      for(shttp_conn_id i = 0; i < sock->conn_count; i++)
+        connfds[i].fd = sock->conns[i];
     }
     if(!shttp_sock_accept_nblk(sock)) {
       for(shttp_conn_id i = 0; i < sock->conn_count; i++) {
@@ -111,7 +113,17 @@ shttp_status shttp_sock_next_nblk(shttp_socket sock[static 1],
   if(req->begin == req->end) return SHTTP_STATUS_SLICE_END;
   for(shttp_conn_id i = 0; i < sock->conn_count; i++) {
     if(sock->conns[i] && poll(connfds + i, 1, 0) > 0) {
+      if(connfds[i].revents & (POLLERR | POLLHUP | POLLPRI)) {
+        if(shttp_sock_close(sock, i)) {
+          sock->conns[i] = -1;
+        }
+        connfds[i].fd = -1;
+        connfds[i].events = 0;
+        continue;
+      }
+      connfds[i].revents = 0;
       l = recv(sock->conns[i], req->begin, req->end - req->begin, 0);
+      if(l < 1) continue;
       req->end = req->begin + (l < 0 ? 0 : l);
       *id = i;
       return SHTTP_STATUS_OK;
