@@ -3,7 +3,7 @@
 
 #include <poll.h>
 
-#include "types.h"
+#include "../shttp.h"
 
 // returns: TIMEOUT, CONN_ACCEPT
 SHTTP_UNUSED_RESULT shttp_status

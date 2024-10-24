@@ -1,10 +1,9 @@
-#include "compose.h"
-
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "../private.h"
+#include "../shttp.h"
 
 #define SHTTP_CPY(m, t) \
   shttp_compose_slice_cpy((m), (shttp_slice){(t), (t) + sizeof(t) - 1})

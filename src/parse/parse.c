@@ -1,10 +1,9 @@
-#include "parse.h"
-
 #include <assert.h>
 #include <string.h>
 
 #include "../conf.h"
 #include "../private.h"
+#include "../shttp.h"
 
 #define SHTTP_CMP(t, m) \
   shttp_parse_slice_cmp((shttp_slice){(t), (t) + sizeof(t) - 1}, (m))

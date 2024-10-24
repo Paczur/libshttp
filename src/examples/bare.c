@@ -8,7 +8,7 @@
 static char buff[BUFF_LENGTH];
 static shttp_response res;
 static shttp_request req;
-static int conns[MAX_CONNS];
+static shttp_conn conns[MAX_CONNS];
 static shttp_socket sock = {.conns = conns, .conn_count = MAX_CONNS};
 
 static shttp_status get(shttp_mut_slice *sbuff, const shttp_mut_slice csbuff) {
