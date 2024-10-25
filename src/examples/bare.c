@@ -12,7 +12,7 @@ static shttp_response res;
 static shttp_request req;
 static shttp_conn conns[MAX_CONNS];
 static shttp_socket sock = {.conns = conns, .conn_count = MAX_CONNS};
-shttp_mut_slice msg_slice = SHTTP_MUT_SLICE(msg_buff);
+static shttp_mut_slice msg_slice = SHTTP_MUT_SLICE(msg_buff);
 
 int main(void) {
   SHTTP_PROP(shttp_init(&sock, PORT));

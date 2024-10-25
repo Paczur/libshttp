@@ -18,7 +18,7 @@ shttp_slice_parse_space_optional(shttp_slice s[static 1]);
 
 // returns: SLICE_END, VALUE_INVALID
 SHTTP_UNUSED_RESULT shttp_status
-shttp_slice_parse_number(shttp_u16 out[static 1], shttp_slice s[static 1]);
+shttp_slice_parse_number(shttp_u32 out[static 1], shttp_slice s[static 1]);
 
 // returns: SLICE_END
 SHTTP_UNUSED_RESULT shttp_status shttp_slice_skip(shttp_slice s[static 1],
@@ -56,11 +56,12 @@ shttp_slice_skip_past_newline(shttp_slice s[static 1]);
 SHTTP_UNUSED_RESULT shttp_status
 shttp_slice_skip_past_space(shttp_slice s[static 1]);
 
-// Slices cannot point to overlapping memory
+SHTTP_PURE SHTTP_UNUSED_RESULT bool shttp_slice_starts_with(shttp_slice s1,
+                                                            shttp_slice s2);
+
 SHTTP_PURE SHTTP_UNUSED_RESULT bool shttp_slice_eq(shttp_slice s1,
                                                    shttp_slice s2);
 
-// Slices cannot point to overlapping memory
 SHTTP_PURE SHTTP_UNUSED_RESULT bool shttp_slice_eq_until(shttp_slice s1,
                                                          shttp_slice s2,
                                                          char mark);

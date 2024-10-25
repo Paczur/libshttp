@@ -125,7 +125,7 @@ TEST(status_line, 1_1_OK) {
 }
 
 TEST(shttp_msg_response, START_ONLY) {
-  const char ans[] = "HTTP/1.0 200 OK\r\n";
+  const char ans[] = "HTTP/1.0 200 OK\r\n\r\n";
   char msg[sizeof(ans)];
   shttp_mut_slice smsg = {msg, msg + sizeof(msg)};
   shttp_response res = {.version = SHTTP_VERSION_1_0, .code = 200};
@@ -148,6 +148,19 @@ TEST(shttp_msg_response, HEADERS) {
   assert_string_equal(ans, msg);
 }
 
+TEST(shttp_msg_response, BODY) {
+  const char ans[] = "HTTP/1.0 200 OK\r\n\r\nBODYBODY";
+  const char body[] = "BODYBODY";
+  char msg[sizeof(ans)];
+  shttp_mut_slice smsg = {msg, msg + sizeof(msg)};
+  shttp_response res = {
+    .version = SHTTP_VERSION_1_0, .code = 200, .body = SHTTP_SLICE(body)};
+  assert_int_equal(SHTTP_STATUS_OK, shttp_msg_response(&smsg, &res));
+  assert_ptr_equal(msg, smsg.begin);
+  assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
+  assert_string_equal(ans, msg);
+}
+
 int main(void) {
   const struct CMUnitTest tests[] = {
     ADD(method, GET),
@@ -164,6 +177,7 @@ int main(void) {
     ADD(status_line, 1_1_OK),
     ADD(shttp_msg_response, START_ONLY),
     ADD(shttp_msg_response, HEADERS),
+    ADD(shttp_msg_response, BODY),
   };
   return cmocka_run_group_tests(tests, NULL, NULL);
 }

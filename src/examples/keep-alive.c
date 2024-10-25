@@ -15,7 +15,7 @@ static shttp_conn conns[MAX_CONNS];
 static shttp_conn_timer conn_timers[MAX_CONNS];
 static shttp_socket sock = {
   .conns = conns, .conn_timers = conn_timers, .conn_count = MAX_CONNS};
-shttp_mut_slice msg_slice = SHTTP_MUT_SLICE(msg_buff);
+static shttp_mut_slice msg_slice = SHTTP_MUT_SLICE(msg_buff);
 
 static void signal_handler(int sig) {
   (void)sig;

@@ -94,7 +94,7 @@ TEST(shttp_slice_parse_space_optional, END) {
 
 TEST(shttp_slice_parse_number, 90) {
   const char msg[] = "90";
-  shttp_u16 n;
+  shttp_u32 n;
   shttp_slice smsg = SHTTP_SLICE(msg);
   assert_int_equal(SHTTP_STATUS_OK, shttp_slice_parse_number(&n, &smsg));
   assert_int_equal(90, n);
@@ -104,7 +104,7 @@ TEST(shttp_slice_parse_number, 90) {
 
 TEST(shttp_slice_parse_number, END) {
   const char msg[] = "";
-  shttp_u16 n;
+  shttp_u32 n;
   shttp_slice smsg = SHTTP_SLICE(msg);
   assert_int_equal(SHTTP_STATUS_SLICE_END, shttp_slice_parse_number(&n, &smsg));
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
@@ -113,7 +113,7 @@ TEST(shttp_slice_parse_number, END) {
 
 TEST(shttp_slice_parse_number, NAN) {
   const char msg[] = "a";
-  shttp_u16 n;
+  shttp_u32 n;
   shttp_slice smsg = SHTTP_SLICE(msg);
   assert_int_equal(SHTTP_STATUS_VALUE_INVALID,
                    shttp_slice_parse_number(&n, &smsg));
@@ -375,11 +375,39 @@ TEST(shttp_slice_skip_past_space, END) {
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
 }
 
+TEST(shttp_slice_starts_with, WRONG_ORDER) {
+  char msg[] = "test";
+  shttp_slice smsg = SHTTP_SLICE(msg);
+  shttp_slice token = {msg, msg + sizeof(msg) - 2};
+  assert_false(shttp_slice_starts_with(token, smsg));
+}
+
+TEST(shttp_slice_starts_with, PART) {
+  char msg[] = "test";
+  shttp_slice smsg = SHTTP_SLICE(msg);
+  shttp_slice token = {msg, msg + sizeof(msg) - 2};
+  assert_true(shttp_slice_starts_with(smsg, token));
+}
+
+TEST(shttp_slice_starts_with, EVERYTHING) {
+  char msg[] = "test";
+  shttp_slice smsg = SHTTP_SLICE(msg);
+  assert_true(shttp_slice_starts_with(smsg, smsg));
+}
+
+TEST(shttp_slice_starts_with, DIFFERENT) {
+  char msg[] = "test";
+  char buff[] = "tesa";
+  shttp_slice smsg = SHTTP_SLICE(msg);
+  shttp_slice sbuff = SHTTP_SLICE(buff);
+  assert_false(shttp_slice_starts_with(sbuff, smsg));
+}
+
 TEST(shttp_slice_eq, PART) {
   char msg[] = "test";
   shttp_slice smsg = SHTTP_SLICE(msg);
   shttp_slice token = {msg, msg + sizeof(msg) - 2};
-  assert_true(shttp_slice_eq(token, smsg));
+  assert_false(shttp_slice_eq(token, smsg));
 }
 
 TEST(shttp_slice_eq, EVERYTHING) {
@@ -562,6 +590,10 @@ int main(void) {
     ADD(shttp_slice_skip_past_space, FOUND),
     ADD(shttp_slice_skip_past_space, NOT_FOUND),
     ADD(shttp_slice_skip_past_space, END),
+    ADD(shttp_slice_starts_with, WRONG_ORDER),
+    ADD(shttp_slice_starts_with, PART),
+    ADD(shttp_slice_starts_with, EVERYTHING),
+    ADD(shttp_slice_starts_with, DIFFERENT),
     ADD(shttp_slice_eq, PART),
     ADD(shttp_slice_eq, EVERYTHING),
     ADD(shttp_slice_eq, DIFFERENT),

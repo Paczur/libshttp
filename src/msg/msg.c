@@ -5,8 +5,8 @@
 #include "../private.h"
 #include "../slice/slice.h"
 
-#define SHTTP_EQ(t, m) \
-  shttp_slice_eq((shttp_slice){(t), (t) + sizeof(t) - 1}, (m))
+#define SHTTP_STARTS_WITH(m, t) \
+  shttp_slice_starts_with((m), (shttp_slice){(t), (t) + sizeof(t) - 1})
 #define SHTTP_CPY(m, t) \
   shttp_slice_cpy((m), (shttp_slice){(t), (t) + sizeof(t) - 1})
 
@@ -16,7 +16,7 @@ SHTTP_UNUSED_RESULT static shttp_status method(shttp_request req[static 1],
   assert(msg);
   assert(msg->begin <= msg->end);
 #define X(x)                                                       \
-  else if(SHTTP_EQ(STRINGIFY(x), *msg)) {                          \
+  else if(SHTTP_STARTS_WITH(*msg, STRINGIFY(x))) {                 \
     if((size_t)(msg->end - msg->begin) < sizeof(STRINGIFY(x)) - 1) \
       return SHTTP_STATUS_SLICE_END;                               \
     msg->begin += sizeof(STRINGIFY(x)) - 1;                        \
@@ -52,16 +52,16 @@ SHTTP_UNUSED_RESULT static shttp_status parse_version(
   assert(msg->begin <= msg->end);
   if((size_t)(msg->end - msg->begin) < sizeof("HTTP/1.0") - 1)
     return SHTTP_STATUS_SLICE_END;
-  if(!SHTTP_EQ("HTTP/", *msg)) return SHTTP_STATUS_PREFIX_INVALID;
+  if(!SHTTP_STARTS_WITH(*msg, "HTTP/")) return SHTTP_STATUS_PREFIX_INVALID;
   msg->begin += sizeof("HTTP/") - 1;
 
-  if(SHTTP_EQ("1.0", *msg)) {
+  if(SHTTP_STARTS_WITH(*msg, "1.0")) {
     req->version = SHTTP_VERSION_1_0;
-  } else if(SHTTP_EQ("1.1", *msg)) {
+  } else if(SHTTP_STARTS_WITH(*msg, "1.1")) {
     req->version = SHTTP_VERSION_1_1;
-  } else if(SHTTP_EQ("2.0", *msg)) {
+  } else if(SHTTP_STARTS_WITH(*msg, "2.0")) {
     req->version = SHTTP_VERSION_2_0;
-  } else if(SHTTP_EQ("3.0", *msg)) {
+  } else if(SHTTP_STARTS_WITH(*msg, "3.0")) {
     req->version = SHTTP_VERSION_3_0;
   } else {
     req->version = SHTTP_VERSION_LENGTH;
@@ -201,8 +201,7 @@ shttp_status shttp_msg_response(shttp_mut_slice msg[static 1],
   assert(msg->begin <= msg->end);
   SHTTP_PROP(status_line(msg, res));
   SHTTP_PROP(shttp_slice_cpy(msg, *(shttp_slice *)&res->headers));
-  if(res->headers.begin != res->headers.end)
-    SHTTP_PROP(shttp_slice_insert_newline(msg));
+  SHTTP_PROP(shttp_slice_insert_newline(msg));
   SHTTP_PROP(shttp_slice_cpy(msg, *(shttp_slice *)&res->body));
   msg->end = msg->begin;
   msg->begin = beginm;

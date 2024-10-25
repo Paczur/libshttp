@@ -46,7 +46,7 @@ shttp_status shttp_slice_parse_space_optional(shttp_slice s[static 1]) {
   return SHTTP_STATUS_OK;
 }
 
-shttp_status shttp_slice_parse_number(shttp_u16 out[static 1],
+shttp_status shttp_slice_parse_number(shttp_u32 out[static 1],
                                       shttp_slice s[static 1]) {
   assert(out);
   assert(s);
@@ -172,25 +172,32 @@ shttp_status shttp_slice_skip_past_space(shttp_slice s[static 1]) {
   return SHTTP_STATUS_OK;
 }
 
+bool shttp_slice_starts_with(shttp_slice s1, shttp_slice s2) {
+  assert(s1.begin <= s1.end);
+  assert(s2.begin <= s2.end);
+  const char *restrict begin1 = s1.begin;
+  const char *restrict begin2 = s2.begin;
+  const char *restrict const end2 = s2.end;
+  if(s1.end - begin1 < end2 - begin2) return false;
+  while(begin2 != end2) {
+    if(*begin1 != *begin2) return false;
+    begin1++;
+    begin2++;
+  }
+  return true;
+}
+
 bool shttp_slice_eq(shttp_slice s1, shttp_slice s2) {
   assert(s1.begin <= s1.end);
   assert(s2.begin <= s2.end);
   const char *restrict begin1 = s1.begin;
-  const char *restrict const end1 = s1.end;
   const char *restrict begin2 = s2.begin;
   const char *restrict const end2 = s2.end;
-  if(end1 - begin1 < end2 - begin2) {
-    while(begin1 != end1) {
-      if(*begin1 != *begin2) return false;
-      begin1++;
-      begin2++;
-    }
-  } else {
-    while(begin2 != end2) {
-      if(*begin1 != *begin2) return false;
-      begin1++;
-      begin2++;
-    }
+  if(s1.end - begin1 != end2 - begin2) return false;
+  while(begin2 != end2) {
+    if(*begin1 != *begin2) return false;
+    begin1++;
+    begin2++;
   }
   return true;
 }
