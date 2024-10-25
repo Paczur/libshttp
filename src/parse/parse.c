@@ -5,8 +5,8 @@
 #include "../private.h"
 #include "../shttp.h"
 
-#define SHTTP_CMP(t, m) \
-  shttp_parse_slice_cmp((shttp_slice){(t), (t) + sizeof(t) - 1}, (m))
+#define SHTTP_EQ(t, m) \
+  shttp_parse_slice_eq((shttp_slice){(t), (t) + sizeof(t) - 1}, (m))
 
 SHTTP_UNUSED_RESULT static shttp_status shttp_parse_method(
   shttp_request req[static 1], shttp_slice msg[static 1]) {
@@ -14,7 +14,7 @@ SHTTP_UNUSED_RESULT static shttp_status shttp_parse_method(
   assert(msg);
   assert(msg->begin <= msg->end);
 #define X(x)                                                       \
-  else if(SHTTP_CMP(STRINGIFY(x), *msg)) {                         \
+  else if(SHTTP_EQ(STRINGIFY(x), *msg)) {                          \
     if((size_t)(msg->end - msg->begin) < sizeof(STRINGIFY(x)) - 1) \
       return SHTTP_STATUS_SLICE_END;                               \
     msg->begin += sizeof(STRINGIFY(x)) - 1;                        \
@@ -50,16 +50,16 @@ SHTTP_UNUSED_RESULT static shttp_status shttp_parse_version(
   assert(msg->begin <= msg->end);
   if((size_t)(msg->end - msg->begin) < sizeof("HTTP/1.0") - 1)
     return SHTTP_STATUS_SLICE_END;
-  if(!SHTTP_CMP("HTTP/", *msg)) return SHTTP_STATUS_PREFIX_INVALID;
+  if(!SHTTP_EQ("HTTP/", *msg)) return SHTTP_STATUS_PREFIX_INVALID;
   msg->begin += sizeof("HTTP/") - 1;
 
-  if(SHTTP_CMP("1.0", *msg)) {
+  if(SHTTP_EQ("1.0", *msg)) {
     req->version = SHTTP_VERSION_1_0;
-  } else if(SHTTP_CMP("1.1", *msg)) {
+  } else if(SHTTP_EQ("1.1", *msg)) {
     req->version = SHTTP_VERSION_1_1;
-  } else if(SHTTP_CMP("2.0", *msg)) {
+  } else if(SHTTP_EQ("2.0", *msg)) {
     req->version = SHTTP_VERSION_2_0;
-  } else if(SHTTP_CMP("3.0", *msg)) {
+  } else if(SHTTP_EQ("3.0", *msg)) {
     req->version = SHTTP_VERSION_3_0;
   } else {
     req->version = SHTTP_VERSION_LENGTH;
@@ -273,7 +273,7 @@ shttp_status shttp_parse_slice_skip_past_space(shttp_slice s[static 1]) {
   return SHTTP_STATUS_OK;
 }
 
-bool shttp_parse_slice_cmp(shttp_slice s1, shttp_slice s2) {
+bool shttp_parse_slice_eq(shttp_slice s1, shttp_slice s2) {
   assert(s1.begin <= s1.end);
   assert(s2.begin <= s2.end);
   const char *restrict begin1 = s1.begin;
@@ -296,7 +296,7 @@ bool shttp_parse_slice_cmp(shttp_slice s1, shttp_slice s2) {
   return true;
 }
 
-bool shttp_parse_slice_cmp_until(shttp_slice s1, shttp_slice s2, char mark) {
+bool shttp_parse_slice_eq_until(shttp_slice s1, shttp_slice s2, char mark) {
   assert(s2.begin <= s2.end);
   assert(s1.begin <= s1.end);
   const char *restrict begin1 = s1.begin;

@@ -1,168 +1,39 @@
 #include <signal.h>
 #include <stdio.h>
 
+#define SHTTP_UNUSED_RESULT  // disables required error handling
 #include "../shttp.h"
 
-#define BUFF_LENGTH 500
-#define HEADER_BUFF_LENGTH 100
+#define MSG_BUFF_LENGTH 500
 #define MAX_CONNS 10
+#define PORT 1337
 
-static char buff[BUFF_LENGTH];
-static char header_buff[HEADER_BUFF_LENGTH];
+static char msg_buff[MSG_BUFF_LENGTH];
 static shttp_response res;
 static shttp_request req;
 static shttp_conn conns[MAX_CONNS];
 static shttp_conn_timer conn_timers[MAX_CONNS];
 static shttp_socket sock = {
   .conns = conns, .conn_timers = conn_timers, .conn_count = MAX_CONNS};
+shttp_mut_slice msg_slice = SHTTP_MUT_SLICE(msg_buff);
 
 static void signal_handler(int sig) {
   (void)sig;
-  switch(shttp_signal_handler(&sock)) {
-  case SHTTP_STATUS_CONN_FD_CLOSE:
-    puts("Couldn't close connection");
-    break;
-  case SHTTP_STATUS_OK:
-    puts("Closed connection");
-    break;
-  default:
-    break;
-  }
-}
-
-static shttp_status keep_alive(void) {
-  res.headers.begin = header_buff;
-  res.headers.end = header_buff + HEADER_BUFF_LENGTH;
-  SHTTP_PROP(shttp_compose_slice_cpy(
-    (shttp_mut_slice *)&res.headers,
-    SHTTP_SLICE(
-      "Keep-Alive: timeout=" SHTTP_STRINGIFY2(SHTTP_KEEP_ALIVE_TIMEOUT))));
-  SHTTP_PROP(shttp_compose_slice_newline((shttp_mut_slice *)&res.headers));
-  SHTTP_PROP(shttp_compose_slice_cpy((shttp_mut_slice *)&res.headers,
-                                     SHTTP_SLICE("Content-Length: 0")));
-  SHTTP_PROP(shttp_compose_slice_newline((shttp_mut_slice *)&res.headers));
-  return SHTTP_STATUS_OK;
-}
-
-static shttp_status headers(void) {
-  shttp_status status;
-  if((status = keep_alive())) {
-    puts("Couldn't add keep-alive to the header");
-    res.headers.end = header_buff;
-  } else {
-    res.headers.end = res.headers.begin;
-  }
-  res.headers.begin = header_buff;
-  return status;
-}
-
-static shttp_status get(shttp_mut_slice *sbuff, const shttp_mut_slice csbuff) {
-  shttp_status status = shttp_next(&req, sbuff, 10);
-  *sbuff = csbuff;
-  switch(status) {
-  case SHTTP_STATUS_SLICE_END:
-    puts("Request too large for slice provided");
-    break;
-  case SHTTP_STATUS_PREFIX_INVALID:
-  case SHTTP_STATUS_VALUE_INVALID:
-  case SHTTP_STATUS_NEWLINE_EXPECTED:
-  case SHTTP_STATUS_SPACE_EXPECTED:
-    puts("Malformed request");
-    break;
-  default:
-    break;
-  }
-  return status;
-}
-
-static shttp_status send(shttp_mut_slice *sbuff, const shttp_mut_slice csbuff) {
-  shttp_status status = shttp_send(sbuff, &res);
-  *sbuff = csbuff;
-  switch(status) {
-  case SHTTP_STATUS_CONN_SEND:
-    puts("Couldn't send message");
-    break;
-  case SHTTP_STATUS_TIMEOUT:
-    puts("Timeout reached waiting for connection");
-    break;
-  case SHTTP_STATUS_CONN_ACCEPT:
-    puts("Error when accepting connection");
-    break;
-  case SHTTP_STATUS_VALUE_INVALID:
-    puts("Invalid value passed in response struct");
-    break;
-  case SHTTP_STATUS_SLICE_END:
-    puts("Buffer too small for response");
-    break;
-  default:
-    break;
-  }
-  return status;
-}
-
-static shttp_status init(void) {
-  const struct sigaction act = {
-    .sa_handler = signal_handler,
-  };
-  shttp_status status;
-  for(shttp_u16 port = 1337; port < 65535; port++) {
-    status = shttp_init(&sock, port);
-    switch(status) {
-    case SHTTP_STATUS_SOCK_CREATE:
-      puts("Error creating socket");
-      break;
-    case SHTTP_STATUS_SOCK_BIND:
-      printf("Error binding socket to port: %u\n", port);
-      break;
-    case SHTTP_STATUS_SOCK_LISTEN:
-      puts("Error setting socket to listen mode");
-      break;
-    case SHTTP_STATUS_OK:
-      printf("Connected to port: %u\n", port);
-      sigaction(SIGALRM, &act, NULL);
-      return SHTTP_STATUS_OK;
-    default:
-      break;
-    }
-    if(shttp_deinit(&sock, false)) {
-    }
-  }
-  return status;
-}
-
-static shttp_status deinit(void) {
-  const struct sigaction act = {
-    .sa_handler = SIG_DFL,
-  };
-  shttp_status status;
-  sigaction(SIGALRM, &act, NULL);
-  if((status = shttp_deinit(&sock, false))) {
-    switch(status) {
-    case SHTTP_STATUS_CONN_FD_CLOSE:
-      puts("Couldn't close connection");
-      break;
-    case SHTTP_STATUS_SOCK_FD_CLOSE:
-      puts("Couldn't close socket");
-      break;
-    default:
-      break;
-    }
-    if((status = shttp_deinit(&sock, true))) {
-      return status;
-    }
-  }
+  if(shttp_signal_handler(&sock)) return;
+  puts("Connection closed");
 }
 
 int main(void) {
-  const shttp_mut_slice csbuff = SHTTP_MUT_SLICE(buff);
-  shttp_mut_slice sbuff = SHTTP_MUT_SLICE(buff);
-  SHTTP_PROP(init());
-  req.sock = &sock;
+  struct sigaction act = {.sa_handler = signal_handler};
+  SHTTP_PROP(shttp_init(&sock, PORT));
+  sigaction(SIGALRM, &act, NULL);
+
   while(true) {
-    if(get(&sbuff, csbuff)) continue;
+    if(shttp_next_ignore(&req, &msg_slice, &sock, 10)) continue;
     shttp_response_to_request(&res, &req);
-    headers();
-    send(&sbuff, csbuff);
+    shttp_send_ignore(&msg_slice, &res);
+    shttp_close(&sock, res.id);
   }
-  return deinit();
+
+  return shttp_deinit(&sock, true);
 }

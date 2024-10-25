@@ -19,13 +19,13 @@ shttp_status shttp_signal_handler(shttp_socket sock[static 1]) {
 }
 
 shttp_status shttp_next(shttp_request req[static 1],
-                        shttp_mut_slice buff[static 1], shttp_u16 timeout) {
+                        shttp_mut_slice buff[static 1],
+                        shttp_socket sock[static 1], shttp_u16 timeout) {
   assert(req);
-  assert(req->sock);
   assert(buff);
   assert(buff->begin <= buff->end);
-  shttp_socket *sock = req->sock;
-  SHTTP_PROP(shttp_sock_next(req->sock, &req->id, buff, timeout));
+  SHTTP_PROP(shttp_sock_next(sock, &req->id, buff, timeout));
+  req->sock = sock;
   SHTTP_PROP(shttp_parse_request(req, (shttp_slice *)buff));
   if(sock->conn_timers) {
     shttp_timer_stop(req->id, sock->timer, sock->conn_timers, sock->conn_count);
@@ -33,13 +33,28 @@ shttp_status shttp_next(shttp_request req[static 1],
   return SHTTP_STATUS_OK;
 }
 
+shttp_status shttp_next_ignore(shttp_request req[static 1],
+                               shttp_mut_slice buff[static 1],
+                               shttp_socket sock[static 1], shttp_u16 timeout) {
+  const shttp_mut_slice c = *buff;
+  shttp_status status = shttp_next(req, buff, sock, timeout);
+  *buff = c;
+  return status;
+}
+
 shttp_status shttp_next_nblk(shttp_request req[static 1],
-                             shttp_mut_slice buff[static 1]) {
-  assert(req);
-  assert(req->sock);
-  assert(buff);
-  assert(buff->begin <= buff->end);
-  return shttp_next(req, buff, 0);
+                             shttp_mut_slice buff[static 1],
+                             shttp_socket sock[static 1]) {
+  return shttp_next(req, buff, sock, 0);
+}
+
+shttp_status shttp_next_nblk_ignore(shttp_request req[static 1],
+                                    shttp_mut_slice buff[static 1],
+                                    shttp_socket sock[static 1]) {
+  const shttp_mut_slice c = *buff;
+  shttp_status status = shttp_next_nblk(req, buff, sock);
+  *buff = c;
+  return status;
 }
 
 void shttp_response_to_request(shttp_response res[static 1],
@@ -69,6 +84,14 @@ shttp_status shttp_send(shttp_mut_slice buff[static 1],
                              sock->conn_count);
   }
   return SHTTP_STATUS_OK;
+}
+
+shttp_status shttp_send_ignore(shttp_mut_slice buff[static 1],
+                               const shttp_response res[static 1]) {
+  const shttp_mut_slice c = *buff;
+  shttp_status status = shttp_send(buff, res);
+  *buff = c;
+  return status;
 }
 
 shttp_status shttp_close(shttp_socket sock[static 1], shttp_conn_id id) {

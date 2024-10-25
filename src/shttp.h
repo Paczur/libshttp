@@ -272,17 +272,31 @@ void shttp_response_to_request(shttp_response res[static 1],
  */
 SHTTP_UNUSED_RESULT shttp_status shttp_next(shttp_request req[static 1],
                                             shttp_mut_slice buff[static 1],
+                                            shttp_socket sock[static 1],
                                             shttp_u16 timeout);
 
-/* returns: TIMEOUT, SLICE_END, PREFIX_INVALID, VALUE_INVALID, NEWLINE_EXPECTED,
- * SPACE_EXPECTED
- */
-SHTTP_UNUSED_RESULT shttp_status
-shttp_next_nblk(shttp_request req[static 1], shttp_mut_slice buff[static 1]);
+// Same as shttp_next, but ignores errors
+shttp_status shttp_next_ignore(shttp_request req[static 1],
+                               shttp_mut_slice buff[static 1],
+                               shttp_socket sock[static 1], shttp_u16 timeout);
+
+// Same as shttp_next with timeout = 0
+SHTTP_UNUSED_RESULT shttp_status shttp_next_nblk(shttp_request req[static 1],
+                                                 shttp_mut_slice buff[static 1],
+                                                 shttp_socket sock[static 1]);
+
+// Same as shttp_next_nblk, but ignores errors
+shttp_status shttp_next_nblk_ignore(shttp_request req[static 1],
+                                    shttp_mut_slice buff[static 1],
+                                    shttp_socket sock[static 1]);
 
 // returns: CONN_SEND, TIMEOUT, CONN_ACCEPT, VALUE_INVALID, SLICE_END
 SHTTP_UNUSED_RESULT shttp_status shttp_send(shttp_mut_slice buff[static 1],
                                             const shttp_response res[static 1]);
+
+// Same as shttp_send, but ignores errors
+shttp_status shttp_send_ignore(shttp_mut_slice buff[static 1],
+                               const shttp_response res[static 1]);
 
 // returns: CONN_FD_CLOSE
 SHTTP_UNUSED_RESULT shttp_status shttp_close(shttp_socket sock[static 1],
@@ -349,13 +363,13 @@ SHTTP_UNUSED_RESULT shttp_status
 shttp_parse_slice_skip_past_space(shttp_slice s[static 1]);
 
 // Slices cannot point to overlapping memory
-SHTTP_PURE SHTTP_UNUSED_RESULT bool shttp_parse_slice_cmp(shttp_slice s1,
-                                                          shttp_slice s2);
+SHTTP_PURE SHTTP_UNUSED_RESULT bool shttp_parse_slice_eq(shttp_slice s1,
+                                                         shttp_slice s2);
 
 // Slices cannot point to overlapping memory
-SHTTP_PURE SHTTP_UNUSED_RESULT bool shttp_parse_slice_cmp_until(shttp_slice s1,
-                                                                shttp_slice s2,
-                                                                char mark);
+SHTTP_PURE SHTTP_UNUSED_RESULT bool shttp_parse_slice_eq_until(shttp_slice s1,
+                                                               shttp_slice s2,
+                                                               char mark);
 
 // returns: SLICE_END NEWLINE_EXPECTED
 SHTTP_UNUSED_RESULT shttp_status

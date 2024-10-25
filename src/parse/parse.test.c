@@ -385,25 +385,25 @@ TEST(shttp_parse_slice_skip_past_space, END) {
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
 }
 
-TEST(shttp_parse_slice_cmp, PART) {
+TEST(shttp_parse_slice_eq, PART) {
   char msg[] = "test";
   shttp_slice smsg = SHTTP_SLICE(msg);
   shttp_slice token = {msg, msg + sizeof(msg) - 2};
-  assert_true(shttp_parse_slice_cmp(token, smsg));
+  assert_true(shttp_parse_slice_eq(token, smsg));
 }
 
-TEST(shttp_parse_slice_cmp, EVERYTHING) {
+TEST(shttp_parse_slice_eq, EVERYTHING) {
   char msg[] = "test";
   shttp_slice smsg = SHTTP_SLICE(msg);
-  assert_true(shttp_parse_slice_cmp(smsg, smsg));
+  assert_true(shttp_parse_slice_eq(smsg, smsg));
 }
 
-TEST(shttp_parse_slice_cmp, DIFFERENT) {
+TEST(shttp_parse_slice_eq, DIFFERENT) {
   char msg[] = "test";
   char buff[] = "tesa";
   shttp_slice smsg = SHTTP_SLICE(msg);
   shttp_slice sbuff = SHTTP_SLICE(buff);
-  assert_false(shttp_parse_slice_cmp(sbuff, smsg));
+  assert_false(shttp_parse_slice_eq(sbuff, smsg));
 }
 
 TEST(shttp_parse_method, GET) {
@@ -627,9 +627,9 @@ int main(void) {
     ADD(shttp_parse_slice_skip_past_space, FOUND),
     ADD(shttp_parse_slice_skip_past_space, NOT_FOUND),
     ADD(shttp_parse_slice_skip_past_space, END),
-    ADD(shttp_parse_slice_cmp, PART),
-    ADD(shttp_parse_slice_cmp, EVERYTHING),
-    ADD(shttp_parse_slice_cmp, DIFFERENT),
+    ADD(shttp_parse_slice_eq, PART),
+    ADD(shttp_parse_slice_eq, EVERYTHING),
+    ADD(shttp_parse_slice_eq, DIFFERENT),
     ADD(shttp_parse_method, GET),
     ADD(shttp_parse_method, POST),
     ADD(shttp_parse_path, SLASH),
