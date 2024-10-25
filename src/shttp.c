@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "conf.h"
+#include "msg/msg.h"
+#include "slice/slice.h"
 #include "sock/sock.h"
 #include "timer/timer.h"
 
@@ -26,7 +28,7 @@ shttp_status shttp_next(shttp_request req[static 1],
   assert(buff->begin <= buff->end);
   SHTTP_PROP(shttp_sock_next(sock, &req->id, buff, timeout));
   req->sock = sock;
-  SHTTP_PROP(shttp_parse_request(req, (shttp_slice *)buff));
+  SHTTP_PROP(shttp_msg_request(req, (shttp_slice *)buff));
   if(sock->conn_timers) {
     shttp_timer_stop(req->id, sock->timer, sock->conn_timers, sock->conn_count);
   }
@@ -76,7 +78,7 @@ shttp_status shttp_send(shttp_mut_slice buff[static 1],
   assert(buff->begin <= buff->end);
   shttp_socket *sock = res->sock;
   shttp_slice s = {.begin = buff->begin};
-  SHTTP_PROP(shttp_compose_response(buff, res));
+  SHTTP_PROP(shttp_msg_response(buff, res));
   s.end = buff->end;
   SHTTP_PROP(shttp_sock_send(res->sock, s, res->id));
   if(sock->conn_timers != NULL) {
