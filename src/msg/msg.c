@@ -2,8 +2,8 @@
 
 #include <assert.h>
 
-#include "../private.h"
 #include "../slice/slice.h"
+#include "../types.h"
 
 #define SHTTP_STARTS_WITH(m, t) \
   shttp_slice_starts_with((m), (shttp_slice){(t), (t) + sizeof(t) - 1})
@@ -12,16 +12,16 @@
 
 SHTTP_UNUSED_RESULT static shttp_status method(shttp_request req[static 1],
                                                shttp_slice msg[static 1]) {
-  assert(req);
-  assert(msg);
-  assert(msg->begin <= msg->end);
-#define X(x)                                                       \
-  else if(SHTTP_STARTS_WITH(*msg, STRINGIFY(x))) {                 \
-    if((size_t)(msg->end - msg->begin) < sizeof(STRINGIFY(x)) - 1) \
-      return SHTTP_STATUS_SLICE_END;                               \
-    msg->begin += sizeof(STRINGIFY(x)) - 1;                        \
-    req->method = SHTTP_METHOD_##x;                                \
-    return SHTTP_STATUS_OK;                                        \
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(msg->begin <= msg->end);
+#define X(x)                                             \
+  else if(SHTTP_STARTS_WITH(*msg, #x)) {                 \
+    if((size_t)(msg->end - msg->begin) < sizeof(#x) - 1) \
+      return SHTTP_STATUS_SLICE_END;                     \
+    msg->begin += sizeof(#x) - 1;                        \
+    req->method = SHTTP_METHOD_##x;                      \
+    return SHTTP_STATUS_OK;                              \
   }
 
   req->method = SHTTP_METHOD_LENGTH;
@@ -35,9 +35,9 @@ SHTTP_UNUSED_RESULT static shttp_status method(shttp_request req[static 1],
 
 SHTTP_UNUSED_RESULT static shttp_status path(shttp_request req[static 1],
                                              shttp_slice msg[static 1]) {
-  assert(req);
-  assert(msg);
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
   req->path.begin = msg->begin;
   SHTTP_PROP(shttp_slice_skip_until_space(msg));
@@ -47,9 +47,9 @@ SHTTP_UNUSED_RESULT static shttp_status path(shttp_request req[static 1],
 
 SHTTP_UNUSED_RESULT static shttp_status parse_version(
   shttp_request req[static 1], shttp_slice msg[static 1]) {
-  assert(req);
-  assert(msg);
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   if((size_t)(msg->end - msg->begin) < sizeof("HTTP/1.0") - 1)
     return SHTTP_STATUS_SLICE_END;
   if(!SHTTP_STARTS_WITH(*msg, "HTTP/")) return SHTTP_STATUS_PREFIX_INVALID;
@@ -73,9 +73,9 @@ SHTTP_UNUSED_RESULT static shttp_status parse_version(
 
 SHTTP_UNUSED_RESULT static shttp_status request_line(
   shttp_request req[static 1], shttp_slice msg[static 1]) {
-  assert(req);
-  assert(msg);
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(method(req, msg));
   SHTTP_PROP(shttp_slice_parse_space(msg));
   SHTTP_PROP(path(req, msg));
@@ -86,9 +86,9 @@ SHTTP_UNUSED_RESULT static shttp_status request_line(
 
 SHTTP_UNUSED_RESULT static shttp_status slices(shttp_request req[static 1],
                                                shttp_slice msg[static 1]) {
-  assert(req);
-  assert(msg);
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   shttp_status status;
   const char *t;
   if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
@@ -110,9 +110,9 @@ SHTTP_UNUSED_RESULT static shttp_status slices(shttp_request req[static 1],
 
 SHTTP_UNUSED_RESULT static shttp_status insert_version(
   shttp_mut_slice msg[static 1], const shttp_response res[static 1]) {
-  assert(res);
-  assert(msg);
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(res);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(SHTTP_CPY(msg, "HTTP/"));
   switch(res->version) {
   case SHTTP_VERSION_1_0:
@@ -135,16 +135,16 @@ SHTTP_UNUSED_RESULT static shttp_status insert_version(
 
 SHTTP_UNUSED_RESULT static shttp_status code(
   shttp_mut_slice msg[static 1], const shttp_response res[static 1]) {
-  assert(msg);
-  assert(res);
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(res);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   char *restrict beginm = msg->begin;
   char *restrict const endm = msg->end;
   shttp_code num = res->code;
 
   if(endm - beginm < 3) {
-    for(shttp_u8 i = endm - beginm; i < 3; i++) num /= 10;
-    for(shttp_u8 i = endm - beginm; i > 0; i--) {
+    for(uint32_t i = endm - beginm; i < 3; i++) num /= 10;
+    for(uint32_t i = endm - beginm; i > 0; i--) {
       beginm[i] = num % 10 + '0';
       num /= 10;
     }
@@ -174,9 +174,9 @@ SHTTP_UNUSED_RESULT static shttp_status code(
 
 SHTTP_UNUSED_RESULT static shttp_resi status_line(
   shttp_mut_slice msg[static 1], const shttp_response res[static 1]) {
-  assert(msg);
-  assert(res);
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(res);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(insert_version(msg, res));
   if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
   *(msg->begin++) = ' ';
@@ -187,9 +187,9 @@ SHTTP_UNUSED_RESULT static shttp_resi status_line(
 
 shttp_status shttp_msg_request(shttp_request req[static 1],
                                shttp_slice msg[static 1]) {
-  assert(req);
-  assert(msg);
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(request_line(req, msg));
   SHTTP_PROP(slices(req, msg));
   return SHTTP_STATUS_OK;
@@ -198,7 +198,7 @@ shttp_status shttp_msg_request(shttp_request req[static 1],
 shttp_status shttp_msg_response(shttp_mut_slice msg[static 1],
                                 const shttp_response res[static 1]) {
   char *restrict const beginm = msg->begin;
-  assert(msg->begin <= msg->end);
+  SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(status_line(msg, res));
   SHTTP_PROP(shttp_slice_cpy(msg, *(shttp_slice *)&res->headers));
   SHTTP_PROP(shttp_slice_insert_newline(msg));

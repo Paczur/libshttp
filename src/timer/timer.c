@@ -20,7 +20,7 @@
 static shttp_conn_id timer_find_index(shttp_conn_id conn,
                                       shttp_conn_timer *conn_timers,
                                       shttp_conn_id conn_count) {
-  assert(conn_timers);
+  SHTTP_ASSERT(conn_timers);
   shttp_conn_id i = 0;
   while(i < conn_count && conn_timers[i].time != -1 &&
         conn_timers[i].conn != conn)
@@ -30,8 +30,8 @@ static shttp_conn_id timer_find_index(shttp_conn_id conn,
 
 static void timer_remove_index(shttp_conn_id i, shttp_conn_timer *conn_timers,
                                shttp_conn_id conn_count) {
-  assert(i < conn_count);
-  assert(conn_timers);
+  SHTTP_ASSERT(i < conn_count);
+  SHTTP_ASSERT(conn_timers);
   while(i < conn_count - 1 && conn_timers[i + 1].time != -1) {
     conn_timers[i] = conn_timers[i + 1];
     i++;
@@ -43,7 +43,7 @@ static void timer_remove_index(shttp_conn_id i, shttp_conn_timer *conn_timers,
 static shttp_status timer_add(shttp_conn_id conn, shttp_time timer_time,
                               shttp_conn_timer *conn_timers,
                               shttp_conn_id conn_count) {
-  assert(conn_timers);
+  SHTTP_ASSERT(conn_timers);
   shttp_conn_id i = 0;
   shttp_time combined_time = timer_time;
   if(conn_timers[0].time == -1) {
@@ -62,9 +62,13 @@ static shttp_status timer_add(shttp_conn_id conn, shttp_time timer_time,
   return SHTTP_STATUS_OK;
 }
 
-static void settime_spec(timer_t timer, shttp_u32 sec, shttp_u32 nsec) {
+static void settime_spec(timer_t timer, uint32_t sec, uint32_t nsec) {
   struct itimerspec value = {.it_value = {.tv_sec = sec, .tv_nsec = nsec}};
-  assert(!timer_settime(timer, 0, &value, NULL));
+#ifdef NDEBUG
+  timer_settime(timer, 0, &value, NULL);
+#else
+  SHTTP_ASSERT(!timer_settime(timer, 0, &value, NULL));
+#endif
 }
 
 static void settime_time(timer_t timer, shttp_time time) {
@@ -73,7 +77,11 @@ static void settime_time(timer_t timer, shttp_time time) {
       .tv_sec = time / TIME_SEC_MULTIPLIER,
       .tv_nsec = (time - (time / TIME_SEC_MULTIPLIER) * TIME_SEC_MULTIPLIER) *
                  TIME_NSEC_DIVISOR}};
-  assert(!timer_settime(timer, 0, &value, NULL));
+#ifdef NDEBUG
+  timer_settime(timer, 0, &value, NULL);
+#else
+  SHTTP_ASSERT(!timer_settime(timer, 0, &value, NULL));
+#endif
 }
 
 static shttp_time gettime(timer_t timer) {
@@ -83,18 +91,22 @@ static shttp_time gettime(timer_t timer) {
          value.it_value.tv_nsec / TIME_NSEC_DIVISOR;
 }
 
-static shttp_time getsettime(timer_t timer, shttp_u32 sec, shttp_u32 nsec) {
+static shttp_time getsettime(timer_t timer, uint32_t sec, uint32_t nsec) {
   struct itimerspec new = {.it_value = {.tv_sec = sec, .tv_nsec = nsec}};
   struct itimerspec old;
-  assert(!timer_settime(timer, 0, &new, &old));
+#ifdef NDEBUG
+  timer_settime(timer, 0, &new, &old);
+#else
+  SHTTP_ASSERT(!timer_settime(timer, 0, &new, &old));
+#endif
   return old.it_value.tv_sec * TIME_SEC_MULTIPLIER +
          old.it_value.tv_nsec / TIME_NSEC_DIVISOR;
 }
 
 void shttp_timer_next(timer_t timer, shttp_conn_timer *conn_timers,
                       shttp_conn_id conn_count) {
-  assert(conn_timers);
-  assert(conn_timers[0].time != -1);
+  SHTTP_ASSERT(conn_timers);
+  SHTTP_ASSERT(conn_timers[0].time != -1);
   shttp_time time = conn_timers[1].time;
   timer_remove_index(0, conn_timers, conn_count);
   if(time != -1) settime_time(timer, time);
@@ -102,7 +114,7 @@ void shttp_timer_next(timer_t timer, shttp_conn_timer *conn_timers,
 
 shttp_status shttp_timer_init(timer_t *timer, shttp_conn_timer *conn_timers,
                               shttp_conn_id conn_count) {
-  assert(conn_timers);
+  SHTTP_ASSERT(conn_timers);
   if(timer_create(CLOCK_MONOTONIC, NULL, timer))
     return SHTTP_STATUS_TIMER_CREATE;
   for(shttp_conn_id i = 0; i < conn_count; i++) conn_timers[i].time = -1;
@@ -113,7 +125,7 @@ void shttp_timer_deinit(timer_t timer) { timer_delete(timer); }
 
 void shttp_timer_stop(shttp_conn_id conn, timer_t timer,
                       shttp_conn_timer *conn_timers, shttp_conn_id conn_count) {
-  assert(conn_timers);
+  SHTTP_ASSERT(conn_timers);
   shttp_time time;
   shttp_conn_id i;
   i = timer_find_index(conn, conn_timers, conn_count);
@@ -137,7 +149,7 @@ void shttp_timer_stop(shttp_conn_id conn, timer_t timer,
 shttp_status shttp_timer_start(shttp_conn_id conn, timer_t timer,
                                shttp_conn_timer *conn_timers,
                                shttp_conn_id conn_count) {
-  assert(conn_timers);
+  SHTTP_ASSERT(conn_timers);
   shttp_time time = 0;
   if(conn_timers[0].time != -1) time = gettime(timer);
   SHTTP_PROP(timer_add(conn, time, conn_timers, conn_count));

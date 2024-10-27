@@ -11,11 +11,11 @@
 #include "timer/timer.h"
 
 shttp_status shttp_signal_handler(shttp_socket sock[static 1]) {
-  assert(sock);
-  assert(sock->conns);
-  assert(sock->conn_count > 0);
-  assert(sock->conn_timers);
-  assert(sock->conn_timers[0].time != -1);
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
+  SHTTP_ASSERT(sock->conn_count > 0);
+  SHTTP_ASSERT(sock->conn_timers);
+  SHTTP_ASSERT(sock->conn_timers[0].time != -1);
   shttp_conn_id id = sock->conn_timers[0].conn;
   shttp_timer_next(sock->timer, sock->conn_timers, sock->conn_count);
   return shttp_sock_close(sock, id);
@@ -23,10 +23,10 @@ shttp_status shttp_signal_handler(shttp_socket sock[static 1]) {
 
 shttp_status shttp_next(shttp_request req[static 1],
                         shttp_mut_slice buff[static 1],
-                        shttp_socket sock[static 1], shttp_u16 timeout) {
-  assert(req);
-  assert(buff);
-  assert(buff->begin <= buff->end);
+                        shttp_socket sock[static 1], uint32_t timeout) {
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(buff);
+  SHTTP_ASSERT(buff->begin <= buff->end);
   SHTTP_PROP(shttp_sock_next(sock, &req->id, buff, timeout));
   req->sock = sock;
   SHTTP_PROP(shttp_msg_request(req, (shttp_slice *)buff));
@@ -38,7 +38,7 @@ shttp_status shttp_next(shttp_request req[static 1],
 
 shttp_status shttp_next_ignore(shttp_request req[static 1],
                                shttp_mut_slice buff[static 1],
-                               shttp_socket sock[static 1], shttp_u16 timeout) {
+                               shttp_socket sock[static 1], uint32_t timeout) {
   const shttp_mut_slice c = *buff;
   shttp_status status = shttp_next(req, buff, sock, timeout);
   *buff = c;
@@ -62,9 +62,9 @@ shttp_status shttp_next_nblk_ignore(shttp_request req[static 1],
 
 void shttp_response_to_request(shttp_response res[static 1],
                                const shttp_request req[static 1]) {
-  assert(res);
-  assert(req);
-  assert(req->sock);
+  SHTTP_ASSERT(res);
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(req->sock);
   res->id = req->id;
   res->code = 200;
   res->version = SHTTP_VERSION_1_1;
@@ -73,10 +73,10 @@ void shttp_response_to_request(shttp_response res[static 1],
 
 shttp_status shttp_send(shttp_mut_slice buff[static 1],
                         const shttp_response res[static 1]) {
-  assert(res);
-  assert(res->sock);
-  assert(buff);
-  assert(buff->begin <= buff->end);
+  SHTTP_ASSERT(res);
+  SHTTP_ASSERT(res->sock);
+  SHTTP_ASSERT(buff);
+  SHTTP_ASSERT(buff->begin <= buff->end);
   shttp_socket *sock = res->sock;
   shttp_slice s = {.begin = buff->begin};
   SHTTP_PROP(shttp_msg_response(buff, res));
@@ -98,18 +98,18 @@ shttp_status shttp_send_ignore(shttp_mut_slice buff[static 1],
 }
 
 shttp_status shttp_close(shttp_socket sock[static 1], shttp_conn_id id) {
-  assert(sock);
-  assert(sock->conns);
-  assert(sock->conn_count > 0);
-  assert(id < sock->conn_count);
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
+  SHTTP_ASSERT(sock->conn_count > 0);
+  SHTTP_ASSERT(id < sock->conn_count);
   if(sock->conn_timers)
     shttp_timer_stop(id, sock->timer, sock->conn_timers, sock->conn_count);
   return shttp_sock_close(sock, id);
 }
 
-shttp_status shttp_init(shttp_socket sock[static 1], shttp_u16 port) {
-  assert(sock);
-  assert(sock->conns);
+shttp_status shttp_init(shttp_socket sock[static 1], uint32_t port) {
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
   SHTTP_PROP(shttp_sock_init(sock, port));
   if(sock->conn_timers) {
     return shttp_timer_init(&sock->timer, sock->conn_timers, sock->conn_count);

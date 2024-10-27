@@ -7,7 +7,7 @@
 
 // returns: TIMEOUT, CONN_ACCEPT
 SHTTP_UNUSED_RESULT shttp_status
-shttp_sock_accept(shttp_socket sock[restrict 1], shttp_u16 timeout);
+shttp_sock_accept(shttp_socket sock[restrict 1], uint32_t timeout);
 
 // returns: TIMEOUT, CONN_ACCEPT
 SHTTP_UNUSED_RESULT shttp_status
@@ -17,7 +17,7 @@ shttp_sock_accept_nblk(shttp_socket sock[restrict 1]);
 SHTTP_UNUSED_RESULT shttp_status shttp_sock_next(shttp_socket sock[restrict 1],
                                                  shttp_conn_id id[static 1],
                                                  shttp_mut_slice req[static 1],
-                                                 shttp_u16 timeout);
+                                                 uint32_t timeout);
 
 // returns: TIMEOUT, SLICE_END
 shttp_status shttp_sock_next_nblk(shttp_socket sock[restrict 1],
@@ -35,7 +35,7 @@ SHTTP_UNUSED_RESULT shttp_status shttp_sock_close(shttp_socket sock[static 1],
 
 // returns: SOCK_CREATE, SOCK_BIND, SOCK_LISTEN, SOCK_BIND
 SHTTP_UNUSED_RESULT shttp_status shttp_sock_init(shttp_socket sock[restrict 1],
-                                                 shttp_u16 port);
+                                                 uint32_t port);
 
 // returns: CONN_FD_CLOSE, SOCK_FD_CLOSE
 SHTTP_UNUSED_RESULT shttp_status

@@ -5,18 +5,6 @@
 #include "slice/slice.h"
 #include "types.h"
 
-#define SHTTP_SLICE(x) \
-  (shttp_slice) { (x), (x) + sizeof(x) - 1 }
-#define SHTTP_MUT_SLICE(x) \
-  (shttp_mut_slice) { (x), (x) + sizeof(x) - 1 }
-#define SHTTP_STRINGIFY(x) #x
-#define SHTTP_STRINGIFY2(x) SHTTP_STRINGIFY(x)
-#define SHTTP_PROP(x)               \
-  do {                              \
-    const shttp_status _status = x; \
-    if(_status) return _status;     \
-  } while(0)
-
 /* Currently only used for timer management
  * returns: TIMER_SET, CONN_FD_CLOSE
  */
@@ -32,12 +20,12 @@ void shttp_response_to_request(shttp_response res[static 1],
 SHTTP_UNUSED_RESULT shttp_status shttp_next(shttp_request req[static 1],
                                             shttp_mut_slice buff[static 1],
                                             shttp_socket sock[static 1],
-                                            shttp_u16 timeout);
+                                            uint32_t timeout);
 
 // Same as shttp_next, but ignores errors
 shttp_status shttp_next_ignore(shttp_request req[static 1],
                                shttp_mut_slice buff[static 1],
-                               shttp_socket sock[static 1], shttp_u16 timeout);
+                               shttp_socket sock[static 1], uint32_t timeout);
 
 // Same as shttp_next with timeout = 0
 SHTTP_UNUSED_RESULT shttp_status shttp_next_nblk(shttp_request req[static 1],
@@ -63,7 +51,7 @@ SHTTP_UNUSED_RESULT shttp_status shttp_close(shttp_socket sock[static 1],
 
 // returns: SOCK_CREATE, SOCK_BIND, SOCK_LISTEN
 SHTTP_UNUSED_RESULT shttp_status shttp_init(shttp_socket sock[static 1],
-                                            shttp_u16 port);
+                                            uint32_t port);
 
 // returns: CONN_FD_CLOSE, SOCK_FD_CLOSE
 SHTTP_UNUSED_RESULT shttp_status shttp_deinit(shttp_socket sock[static 1],

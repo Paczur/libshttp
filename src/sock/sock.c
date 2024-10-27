@@ -10,12 +10,11 @@
 #include <unistd.h>
 
 #include "../conf.h"
-#include "../private.h"
 
-shttp_status shttp_sock_accept(shttp_socket sock[static 1], shttp_u16 timeout) {
-  assert(sock);
-  assert(sock->conns);
-  assert(sock->conn_count > 0);
+shttp_status shttp_sock_accept(shttp_socket sock[static 1], uint32_t timeout) {
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
+  SHTTP_ASSERT(sock->conn_count > 0);
   struct pollfd sockfd = {.fd = sock->sock, .events = POLLIN | POLLOUT};
   if(!poll(&sockfd, 1, timeout)) return SHTTP_STATUS_TIMEOUT;
   for(shttp_conn_id i = 0; i < sock->conn_count; i++) {
@@ -29,27 +28,27 @@ shttp_status shttp_sock_accept(shttp_socket sock[static 1], shttp_u16 timeout) {
 }
 
 shttp_status shttp_sock_accept_nblk(shttp_socket sock[static 1]) {
-  assert(sock);
-  assert(sock->conns);
-  assert(sock->conn_count > 0);
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
+  SHTTP_ASSERT(sock->conn_count > 0);
   return shttp_sock_accept(sock, 0);
 }
 
 shttp_status shttp_sock_next(shttp_socket sock[static 1],
                              shttp_conn_id id[static 1],
-                             shttp_mut_slice req[static 1], shttp_u16 timeout) {
-  assert(id);
-  assert(req);
-  assert(req->begin <= req->end);
-  assert(sock);
-  assert(sock->conns);
+                             shttp_mut_slice req[static 1], uint32_t timeout) {
+  SHTTP_ASSERT(id);
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(req->begin <= req->end);
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
   ssize_t l;
   const struct timespec reqt = {
     .tv_sec = 0, .tv_nsec = 1000000000 / SHTTP_CONN_CHECKS_PER_SECOND};
   struct timespec rem;
   struct timespec rem2;
   if(req->begin == req->end) return SHTTP_STATUS_SLICE_END;
-  for(shttp_u32 j = 0; j < timeout * SHTTP_CONN_CHECKS_PER_SECOND; j++) {
+  for(uint32_t j = 0; j < timeout * SHTTP_CONN_CHECKS_PER_SECOND; j++) {
     if(nanosleep(&reqt, &rem) == -1) {
       while(1) {
         if(nanosleep(&rem, &rem2) != -1) break;
@@ -83,12 +82,12 @@ shttp_status shttp_sock_next(shttp_socket sock[static 1],
 shttp_status shttp_sock_next_nblk(shttp_socket sock[static 1],
                                   shttp_conn_id id[static 1],
                                   shttp_mut_slice req[static 1]) {
-  assert(id);
-  assert(req);
-  assert(req->begin <= req->end);
-  assert(sock);
-  assert(sock->conns);
-  assert(sock->conn_count > 0);
+  SHTTP_ASSERT(id);
+  SHTTP_ASSERT(req);
+  SHTTP_ASSERT(req->begin <= req->end);
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
+  SHTTP_ASSERT(sock->conn_count > 0);
   ssize_t l;
   if(req->begin == req->end) return SHTTP_STATUS_SLICE_END;
   for(shttp_conn_id i = 0; i < sock->conn_count; i++) {
@@ -114,10 +113,10 @@ shttp_status shttp_sock_next_nblk(shttp_socket sock[static 1],
 
 shttp_status shttp_sock_send(shttp_socket sock[static 1], shttp_slice res,
                              shttp_conn_id id) {
-  assert(sock);
-  assert(sock->conns);
-  assert(sock->conn_count > 0);
-  assert(id < sock->conn_count);
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
+  SHTTP_ASSERT(sock->conn_count > 0);
+  SHTTP_ASSERT(id < sock->conn_count);
   if(send(sock->conns[id].fd, res.begin, res.end - res.begin, 0) == -1)
     return SHTTP_STATUS_CONN_SEND;
   if(shttp_sock_accept_nblk(sock)) {
@@ -128,21 +127,21 @@ shttp_status shttp_sock_send(shttp_socket sock[static 1], shttp_slice res,
 }
 
 shttp_status shttp_sock_close(shttp_socket sock[static 1], shttp_conn_id id) {
-  assert(sock);
-  assert(sock->conns);
-  assert(sock->conn_count > 0);
-  assert(id < sock->conn_count);
-  assert(sock->conns[id].fd >= 0);
-  if(shutdown(sock->conns[id].fd, SHUT_RDWR)) assert(errno == ENOTCONN);
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
+  SHTTP_ASSERT(sock->conn_count > 0);
+  SHTTP_ASSERT(id < sock->conn_count);
+  SHTTP_ASSERT(sock->conns[id].fd >= 0);
+  if(shutdown(sock->conns[id].fd, SHUT_RDWR)) SHTTP_ASSERT(errno == ENOTCONN);
   if(close(sock->conns[id].fd)) return SHTTP_STATUS_CONN_FD_CLOSE;
   sock->conns[id].fd = -1;
   return SHTTP_STATUS_OK;
 }
 
-shttp_status shttp_sock_init(shttp_socket sock[static 1], shttp_u16 port) {
-  assert(sock);
-  assert(sock->conns);
-  assert(sock->conn_count > 0);
+shttp_status shttp_sock_init(shttp_socket sock[static 1], uint32_t port) {
+  SHTTP_ASSERT(sock);
+  SHTTP_ASSERT(sock->conns);
+  SHTTP_ASSERT(sock->conn_count > 0);
   int flag = 1;
   struct sockaddr_in servaddr = {.sin_family = AF_INET};
   servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -154,8 +153,12 @@ shttp_status shttp_sock_init(shttp_socket sock[static 1], shttp_u16 port) {
   }
   if(((sock->sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0))) < 0)
     return SHTTP_STATUS_SOCK_CREATE;
-  assert(!setsockopt(sock->sock, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
-                     sizeof(flag)));
+#ifdef NDEBUG
+  setsockopt(sock->sock, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(flag));
+#else
+  SHTTP_ASSERT(!setsockopt(sock->sock, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
+                           sizeof(flag)));
+#endif
   if(bind(sock->sock, (struct sockaddr *)&servaddr, sizeof(servaddr)))
     return SHTTP_STATUS_SOCK_BIND;
   if(listen(sock->sock, SHTTP_SOCKET_BACKLOG_SIZE))
@@ -164,7 +167,7 @@ shttp_status shttp_sock_init(shttp_socket sock[static 1], shttp_u16 port) {
 }
 
 shttp_status shttp_sock_deinit(shttp_socket sock[restrict 1], bool force) {
-  assert(sock);
+  SHTTP_ASSERT(sock);
   if(sock->conns) {
     for(shttp_conn_id i = 0; i < sock->conn_count; i++) {
       if(sock->conns[i].fd < 0) {

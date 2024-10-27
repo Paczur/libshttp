@@ -4,6 +4,10 @@
 #include "../conf.h"
 #include "../types.h"
 
+SHTTP_PURE uint32_t shttp_slice_length(shttp_slice s[static 1]);
+
+SHTTP_PURE bool shttp_slice_empty(shttp_slice s[static 1]);
+
 // returns: SLICE_END, NEWLINE_EXPECTED
 SHTTP_UNUSED_RESULT shttp_status
 shttp_slice_parse_newline(shttp_slice s[static 1]);
@@ -17,12 +21,32 @@ SHTTP_UNUSED_RESULT shttp_status
 shttp_slice_parse_space_optional(shttp_slice s[static 1]);
 
 // returns: SLICE_END, VALUE_INVALID
-SHTTP_UNUSED_RESULT shttp_status
-shttp_slice_parse_number(shttp_u32 out[static 1], shttp_slice s[static 1]);
+SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_u32(uint32_t out[static 1],
+                                                       shttp_slice s[static 1]);
+
+// returns: SLICE_END, VALUE_INVALID
+SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_u16(uint16_t out[static 1],
+                                                       shttp_slice s[static 1]);
+
+// returns: SLICE_END, VALUE_INVALID
+SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_u8(uint8_t out[static 1],
+                                                      shttp_slice s[static 1]);
+
+// returns: SLICE_END, VALUE_INVALID
+SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_i32(int32_t out[static 1],
+                                                       shttp_slice s[static 1]);
+
+// returns: SLICE_END, VALUE_INVALID
+SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_i16(int16_t out[static 1],
+                                                       shttp_slice s[static 1]);
+
+// returns: SLICE_END, VALUE_INVALID
+SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_i8(int8_t out[static 1],
+                                                      shttp_slice s[static 1]);
 
 // returns: SLICE_END
 SHTTP_UNUSED_RESULT shttp_status shttp_slice_skip(shttp_slice s[static 1],
-                                                  shttp_u16 x);
+                                                  uint32_t x);
 
 // returns: SLICE_END
 SHTTP_UNUSED_RESULT shttp_status shttp_slice_skip_until(shttp_slice s[static 1],

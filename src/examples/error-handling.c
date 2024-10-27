@@ -57,7 +57,7 @@ static shttp_status send(shttp_mut_slice *sbuff, const shttp_mut_slice csbuff) {
 
 static shttp_status init(void) {
   shttp_status status;
-  for(shttp_u16 port = 1337; port < 65535; port++) {
+  for(uint32_t port = 1337; port < 65535; port++) {
     status = shttp_init(&sock, port);
     switch(status) {
     case SHTTP_STATUS_SOCK_CREATE:

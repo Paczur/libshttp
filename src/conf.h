@@ -10,6 +10,10 @@
 #define SHTTP_CONN_CHECKS_PER_SECOND 10  // (1, 256)
 #endif
 
+#ifndef SHTTP_ASSERT
+#define SHTTP_ASSERT(x) assert(x)
+#endif
+
 // Attributes:
 
 #ifndef SHTTP_UNUSED_RESULT

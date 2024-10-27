@@ -18,8 +18,8 @@ static shttp_socket sock = {.conns = conns, .conn_count = MAX_CONNS};
 static shttp_mut_slice msg_slice = SHTTP_MUT_SLICE(msg_buff);
 static shttp_mut_slice body_slice = SHTTP_MUT_SLICE(body_buff);
 
-static shttp_s32 arr[ARR_CAPACITY];
-static shttp_u32 arr_size = 0;
+static int32_t arr[ARR_CAPACITY];
+static uint32_t arr_size = 0;
 
 static void options(void) {
   shttp_slice_cpy(&body_slice, SHTTP_SLICE("/options"));
@@ -37,8 +37,8 @@ static void options(void) {
 
 static void list(void) {
   char num_buff[10];
-  shttp_u32 i;
-  shttp_u8 printed;
+  uint32_t i;
+  uint32_t printed;
   shttp_slice slice = SHTTP_SLICE(num_buff);
   if(arr_size == 0) return;
   for(i = 0; i < ARR_CAPACITY; i++) {
@@ -59,15 +59,15 @@ static void list(void) {
   }
 }
 
-static void create(shttp_u32 val) {
+static void create(uint32_t val) {
   char num_buff[10];
-  shttp_u8 printed;
+  uint32_t printed;
   shttp_slice slice;
   if(arr_size == ARR_CAPACITY) {
     res.code = SHTTP_CODE_INSUFFICIENT_STORAGE;
     return;
   }
-  for(shttp_u32 i = 0; i < ARR_CAPACITY; i++) {
+  for(uint32_t i = 0; i < ARR_CAPACITY; i++) {
     if(arr[i] == -1) {
       printed = snprintf(num_buff, 10, "%u", i);
       if(printed < 1) {
@@ -86,9 +86,9 @@ static void create(shttp_u32 val) {
   return;
 }
 
-static void read(shttp_u32 id) {
+static void read(uint32_t id) {
   char num_buff[10];
-  shttp_u8 printed;
+  uint32_t printed;
   shttp_slice slice = SHTTP_SLICE(num_buff);
   if(arr_size == 0 || arr[id] == -1) {
     res.code = SHTTP_CODE_BAD_REQUEST;
@@ -103,67 +103,55 @@ static void read(shttp_u32 id) {
   shttp_slice_cpy(&body_slice, slice);
 }
 
-static void update(shttp_u32 id, shttp_u32 val) {
+static void update(uint32_t id, uint32_t val) {
   if(arr[id] == -1) {
-    res.code = SHTTP_CODE_BAD_REQUEST;
+    res.code = SHTTP_CODE_NOT_FOUND;
     return;
   }
   arr[id] = val;
 }
 
-static void delete(shttp_u32 id) {
+static void delete(uint32_t id) {
   arr_size -= (arr[id] != -1);
   arr[id] = -1;
 }
 
 static void path_dispatch(void) {
-  shttp_u32 id;
-  shttp_u32 val;
-  shttp_slice path_slice;
+  uint32_t id = 0;
+  uint32_t val = 0;
+  shttp_slice path_slice = req.path;
   body_slice = SHTTP_MUT_SLICE(body_buff);
   res.body = (shttp_slice){0};
-  if(shttp_slice_eq(req.path, SHTTP_SLICE("/")) ||
-     shttp_slice_starts_with(req.path, SHTTP_SLICE("/options"))) {
+  shttp_slice_skip(&path_slice, 1);
+  if(shttp_slice_empty(&path_slice)) {
     options();
-  } else if(shttp_slice_starts_with(req.path, SHTTP_SLICE("/list"))) {
+    return;
+  }
+  if(shttp_slice_eq_until(path_slice, SHTTP_SLICE("options"), '/')) {
+    options();
+  } else if(shttp_slice_eq_until(path_slice, SHTTP_SLICE("list"), '/')) {
     list();
-  } else if(shttp_slice_starts_with(req.path, SHTTP_SLICE("/create/"))) {
-    path_slice = req.path;
-    path_slice.begin += sizeof("/create/") - 1;
-    if(shttp_slice_parse_number(&val, &path_slice)) {
-      res.code = SHTTP_CODE_BAD_REQUEST;
-      return;
-    }
+  } else if(shttp_slice_eq_until(path_slice, SHTTP_SLICE("create"), '/')) {
+    shttp_slice_skip_past(&path_slice, '/');
+    shttp_slice_parse_u32(&val, &path_slice);
     create(val);
-  } else if(shttp_slice_starts_with(req.path, SHTTP_SLICE("/read/"))) {
-    path_slice = req.path;
-    path_slice.begin += sizeof("/read/") - 1;
-    if(shttp_slice_parse_number(&id, &path_slice)) {
-      res.code = SHTTP_CODE_BAD_REQUEST;
-      return;
-    }
+  } else if(shttp_slice_eq_until(path_slice, SHTTP_SLICE("read"), '/')) {
+    shttp_slice_skip_past(&path_slice, '/');
+    shttp_slice_parse_u32(&id, &path_slice);
     read(id);
-  } else if(shttp_slice_starts_with(req.path, SHTTP_SLICE("/update/"))) {
-    path_slice = req.path;
-    path_slice.begin += sizeof("/update/") - 1;
-    if(shttp_slice_parse_number(&id, &path_slice) ||
-       path_slice.begin[0] != ':') {
+  } else if(shttp_slice_eq_until(path_slice, SHTTP_SLICE("update"), '/')) {
+    shttp_slice_skip_past(&path_slice, '/');
+    shttp_slice_parse_u32(&id, &path_slice);
+    if(path_slice.begin[0] != ':') {
       res.code = SHTTP_CODE_BAD_REQUEST;
       return;
     }
-    path_slice.begin++;
-    if(shttp_slice_parse_number(&val, &path_slice)) {
-      res.code = SHTTP_CODE_BAD_REQUEST;
-      return;
-    }
+    shttp_slice_skip(&path_slice, 1);
+    shttp_slice_parse_u32(&val, &path_slice);
     update(id, val);
-  } else if(shttp_slice_starts_with(req.path, SHTTP_SLICE("/delete/"))) {
-    path_slice = req.path;
-    path_slice.begin += sizeof("/delete/") - 1;
-    if(shttp_slice_parse_number(&id, &path_slice)) {
-      res.code = SHTTP_CODE_BAD_REQUEST;
-      return;
-    }
+  } else if(shttp_slice_eq_until(path_slice, SHTTP_SLICE("delete"), '/')) {
+    shttp_slice_skip_past(&path_slice, '/');
+    shttp_slice_parse_u32(&id, &path_slice);
     delete(id);
   }
 }
@@ -174,7 +162,7 @@ static void set_response(void) {
 
 int main(void) {
   SHTTP_PROP(shttp_init(&sock, PORT));
-  for(shttp_u32 i = 0; i < ARR_CAPACITY; i++) arr[i] = -1;
+  for(uint32_t i = 0; i < ARR_CAPACITY; i++) arr[i] = -1;
 
   while(true) {
     if(shttp_next_ignore(&req, &msg_slice, &sock, 10)) continue;

@@ -92,31 +92,60 @@ TEST(shttp_slice_parse_space_optional, END) {
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
 }
 
-TEST(shttp_slice_parse_number, 90) {
+TEST(shttp_slice_parse_u32, 90) {
   const char msg[] = "90";
-  shttp_u32 n;
+  uint32_t n;
   shttp_slice smsg = SHTTP_SLICE(msg);
-  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_parse_number(&n, &smsg));
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_parse_u32(&n, &smsg));
   assert_int_equal(90, n);
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
 }
 
-TEST(shttp_slice_parse_number, END) {
+TEST(shttp_slice_parse_u32, END) {
   const char msg[] = "";
-  shttp_u32 n;
+  uint32_t n;
   shttp_slice smsg = SHTTP_SLICE(msg);
-  assert_int_equal(SHTTP_STATUS_SLICE_END, shttp_slice_parse_number(&n, &smsg));
+  assert_int_equal(SHTTP_STATUS_SLICE_END, shttp_slice_parse_u32(&n, &smsg));
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
 }
 
-TEST(shttp_slice_parse_number, NAN) {
+TEST(shttp_slice_parse_u32, NAN) {
   const char msg[] = "a";
-  shttp_u32 n;
+  uint32_t n;
   shttp_slice smsg = SHTTP_SLICE(msg);
   assert_int_equal(SHTTP_STATUS_VALUE_INVALID,
-                   shttp_slice_parse_number(&n, &smsg));
+                   shttp_slice_parse_u32(&n, &smsg));
+  assert_ptr_equal(msg + sizeof(msg) - 2, smsg.begin);
+  assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
+}
+
+TEST(shttp_slice_parse_i32, NEGATIVE_90) {
+  const char msg[] = "-90";
+  int32_t n;
+  shttp_slice smsg = SHTTP_SLICE(msg);
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_parse_i32(&n, &smsg));
+  assert_int_equal(-90, n);
+  assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
+  assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
+}
+
+TEST(shttp_slice_parse_i32, END) {
+  const char msg[] = "";
+  int32_t n;
+  shttp_slice smsg = SHTTP_SLICE(msg);
+  assert_int_equal(SHTTP_STATUS_SLICE_END, shttp_slice_parse_i32(&n, &smsg));
+  assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
+  assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
+}
+
+TEST(shttp_slice_parse_i32, NAN) {
+  const char msg[] = "a";
+  int32_t n;
+  shttp_slice smsg = SHTTP_SLICE(msg);
+  assert_int_equal(SHTTP_STATUS_VALUE_INVALID,
+                   shttp_slice_parse_i32(&n, &smsg));
   assert_ptr_equal(msg + sizeof(msg) - 2, smsg.begin);
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
 }
@@ -424,6 +453,24 @@ TEST(shttp_slice_eq, DIFFERENT) {
   assert_false(shttp_slice_eq(sbuff, smsg));
 }
 
+TEST(shttp_slice_eq_until, PART) {
+  char msg[] = "test;as";
+  char token[] = "test";
+  assert_true(shttp_slice_eq_until(SHTTP_SLICE(token), SHTTP_SLICE(msg), ';'));
+}
+
+TEST(shttp_slice_eq_until, EVERYTHING) {
+  char msg[] = "test";
+  char token[] = "test";
+  assert_true(shttp_slice_eq_until(SHTTP_SLICE(token), SHTTP_SLICE(msg), ';'));
+}
+
+TEST(shttp_slice_eq_until, DIFFERENT) {
+  char msg[] = "test;as";
+  char token[] = "tess";
+  assert_false(shttp_slice_eq_until(SHTTP_SLICE(token), SHTTP_SLICE(msg), ';'));
+}
+
 TEST(shttp_header_next, SINGLE) {
   const char msg[] = "key: value value2\r\n";
   shttp_slice smsg = SHTTP_SLICE(msg);
@@ -557,9 +604,12 @@ int main(void) {
     ADD(shttp_slice_parse_space_optional, SPACE),
     ADD(shttp_slice_parse_space_optional, NOT_SPACE),
     ADD(shttp_slice_parse_space_optional, END),
-    ADD(shttp_slice_parse_number, 90),
-    ADD(shttp_slice_parse_number, END),
-    ADD(shttp_slice_parse_number, NAN),
+    ADD(shttp_slice_parse_u32, 90),
+    ADD(shttp_slice_parse_u32, END),
+    ADD(shttp_slice_parse_u32, NAN),
+    ADD(shttp_slice_parse_i32, NEGATIVE_90),
+    ADD(shttp_slice_parse_i32, END),
+    ADD(shttp_slice_parse_i32, NAN),
     ADD(shttp_slice_skip, LEFT),
     ADD(shttp_slice_skip, EVERYTHING),
     ADD(shttp_slice_skip, NOT_ENOUGH),
@@ -597,6 +647,9 @@ int main(void) {
     ADD(shttp_slice_eq, PART),
     ADD(shttp_slice_eq, EVERYTHING),
     ADD(shttp_slice_eq, DIFFERENT),
+    ADD(shttp_slice_eq_until, PART),
+    ADD(shttp_slice_eq_until, EVERYTHING),
+    ADD(shttp_slice_eq_until, DIFFERENT),
     ADD(shttp_header_next, SINGLE),
     ADD(shttp_header_next, MULTIPLE),
     ADD(shttp_header_key, BASIC),

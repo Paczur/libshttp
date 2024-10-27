@@ -6,13 +6,15 @@
 #include <stdint.h>
 #include <time.h>
 
-typedef uint_least8_t shttp_u8;
-typedef uint_least16_t shttp_u16;
-typedef uint_least32_t shttp_u32;
-
-typedef int_least8_t shttp_s8;
-typedef int_least16_t shttp_s16;
-typedef int_least32_t shttp_s32;
+#define SHTTP_SLICE(x) \
+  (shttp_slice) { (x), (x) + sizeof(x) - 1 }
+#define SHTTP_MUT_SLICE(x) \
+  (shttp_mut_slice) { (x), (x) + sizeof(x) - 1 }
+#define SHTTP_PROP(x)               \
+  do {                              \
+    const shttp_status _status = x; \
+    if(_status) return _status;     \
+  } while(0)
 
 typedef enum shttp_status {
   SHTTP_STATUS_OK,
@@ -36,13 +38,13 @@ typedef enum shttp_status {
   SHTTP_STATUS_LAST,
 } shttp_status;
 
-typedef shttp_u8 shttp_conn_id;
+typedef uint8_t shttp_conn_id;
 
-typedef shttp_u16 shttp_reqi;
+typedef uint16_t shttp_reqi;
 
-typedef shttp_u32 shttp_resi;
+typedef uint32_t shttp_resi;
 
-typedef shttp_s32 shttp_time;
+typedef int32_t shttp_time;
 
 #define SHTTP_X_CODES                \
   X(CONTINUE)                        \
