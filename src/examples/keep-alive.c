@@ -6,7 +6,7 @@
 
 #define MSG_BUFF_LENGTH 500
 #define MAX_CONNS 10
-#define PORT 1337
+#define PORT 80
 
 static char msg_buff[MSG_BUFF_LENGTH];
 static shttp_response res;

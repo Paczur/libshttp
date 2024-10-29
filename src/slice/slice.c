@@ -2,7 +2,6 @@
 
 #include <assert.h>
 #include <stdarg.h>
-#include <stdio.h>
 #include <string.h>
 
 SHTTP_PURE uint32_t shttp_slice_length(shttp_slice s) {
@@ -206,25 +205,40 @@ shttp_status shttp_slice_parse_format(shttp_slice s[static 1],
 
   while(true) {
     // Go to the special expr
-    if(shttp_slice_skip_until(&format, '{')) {
-      // Format ended, still need to check before
-    }
+    while(true) {
+      if(shttp_slice_skip_until(&format, '{')) {
+        // Format ended, still need to check before
+      }
 
-    // Compare all normal text found until now
-    format_region.end = format.begin;
-    s_region.end = s_region.begin + shttp_slice_length(format_region);
-    if(s_region.end > s_copy.end) {
-      status = SHTTP_STATUS_SLICE_END;
-      goto cleanup;
+      // Compare all normal text found until now
+      format_region.end = format.begin;
+      s_region.end = s_region.begin + shttp_slice_length(format_region);
+      if(s_region.end > s_copy.end) {
+        status = SHTTP_STATUS_SLICE_END;
+        goto cleanup;
+      }
+      if(!shttp_slice_eq(format_region, s_region)) {
+        status = SHTTP_STATUS_VALUE_INVALID;
+        goto cleanup;
+      }
+      s_copy.begin = s_region.end;
+      if(format.begin == format.end) goto cleanup;
+      if((status = shttp_slice_skip(&format, 1))) goto cleanup;
+      if(*format.begin == '{') {
+        if(*s_copy.begin != '{') {
+          status = SHTTP_STATUS_FORMAT_INVALID;
+          goto cleanup;
+        }
+        if((status = shttp_slice_skip(&s_copy, 1))) goto cleanup;
+        if((status = shttp_slice_skip(&format, 1))) goto cleanup;
+        format_region.begin = format.begin;
+        s_region.begin = s_copy.begin;
+      } else {
+        format_region.begin = format.begin;
+        s_region.begin = s_copy.begin;
+        break;
+      }
     }
-    if(!shttp_slice_eq(format_region, s_region)) {
-      status = SHTTP_STATUS_VALUE_INVALID;
-      goto cleanup;
-    }
-    s_region.begin = s_region.end;
-    s_copy.begin = s_region.end;
-    if(format.begin == format.end) goto cleanup;
-    format_region.begin = format_region.end + 1;
 
     // Go to the end of special expr
     if(shttp_slice_skip_past(&format, '}')) {
@@ -736,13 +750,22 @@ shttp_status shttp_slice_insert_format(shttp_mut_slice s[static 1],
   va_start(arg_list, format);
 
   while(true) {
-    if(shttp_slice_skip_until(&format, '{')) {
+    while(true) {
+      if(shttp_slice_skip_until(&format, '{')) {
+      }
+      format_region.end = format.begin;
+      if((status = shttp_slice_cpy(s, format_region))) goto cleanup;
+      if(format.begin == format.end) goto cleanup;
+      if((status = shttp_slice_skip(&format, 1))) goto cleanup;
+      if(*format.begin == '{') {
+        if((status = shttp_slice_cpy_char(s, '{'))) goto cleanup;
+        if((status = shttp_slice_skip(&format, 1))) goto cleanup;
+        format_region.begin = format.begin;
+      } else {
+        format_region.begin = format.begin;
+        break;
+      }
     }
-    format_region.end = format.begin;
-    if((status = shttp_slice_cpy(s, format_region))) goto cleanup;
-    if(format.begin == format.end) goto cleanup;
-    if((status = shttp_slice_skip(&format, 1))) goto cleanup;
-    format_region.begin = format.begin;
     if((status = shttp_slice_skip_past(&format, '}'))) goto cleanup;
     format_region.end = format.begin - 1;
 
@@ -837,6 +860,7 @@ shttp_status shttp_slice_cpy_char(shttp_mut_slice msg[static 1], char c) {
   char *restrict beginm = msg->begin;
   char *restrict const endm = msg->end;
   if(endm == beginm) return SHTTP_STATUS_SLICE_END;
-  *(beginm++) = c;
+  *beginm = c;
+  msg->begin++;
   return SHTTP_STATUS_OK;
 }

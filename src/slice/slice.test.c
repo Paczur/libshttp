@@ -232,6 +232,25 @@ TEST(shttp_slice_parse_format, NOT_CLOSED) {
   assert_ptr_equal(slice.end - sizeof("23") + 1, slice.begin);
 }
 
+TEST(shttp_slice_parse_format, u32_INSIDE_TEXT_ESCAPED) {
+  uint32_t val;
+  shttp_slice slice = SHTTP_SLICE("{thing: 23,}");
+  assert_int_equal(
+    SHTTP_STATUS_OK,
+    shttp_slice_parse_format(&slice, SHTTP_SLICE("{{thing: {u32},}"), &val));
+  assert_int_equal(23, val);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_parse_format, u32_AFTER_ESCAPE) {
+  uint32_t val;
+  shttp_slice slice = SHTTP_SLICE("{23}");
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_parse_format(
+                                      &slice, SHTTP_SLICE("{{{u32}}"), &val));
+  assert_int_equal(23, val);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
 TEST(shttp_slice_skip, LEFT) {
   const char msg[] = "1234";
   shttp_slice smsg = SHTTP_SLICE(msg);
@@ -762,6 +781,25 @@ TEST(shttp_slice_insert_format, slice_INSIDE_TEXT) {
   assert_memory_equal("thing: string", buff, sizeof("thing: string") - 1);
 }
 
+TEST(shttp_slice_insert_format, u32_INSIDE_TEXT_ESCAPED) {
+  char buff[15];
+  const char res[] = "{value: 23,}";
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(
+    SHTTP_STATUS_OK,
+    shttp_slice_insert_format(&slice, SHTTP_SLICE("{{value: {u32},}"), 23));
+  assert_memory_equal(res, buff, sizeof(res) - 1);
+}
+
+TEST(shttp_slice_insert_format, u32_AFTER_ESCAPE) {
+  char buff[15];
+  const char res[] = "{23}";
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_insert_format(
+                                      &slice, SHTTP_SLICE("{{{u32}}"), 23));
+  assert_memory_equal(res, buff, sizeof(res) - 1);
+}
+
 TEST(shttp_slice_cpy, BASIC) {
   const char slice[] = "slice";
   char msg[sizeof(slice)];
@@ -809,6 +847,8 @@ int main(void) {
     ADD(shttp_slice_parse_format, MULTIPLE_slice),
     ADD(shttp_slice_parse_format, slice_INSIDE_TEXT),
     ADD(shttp_slice_parse_format, NOT_CLOSED),
+    ADD(shttp_slice_parse_format, u32_INSIDE_TEXT_ESCAPED),
+    ADD(shttp_slice_parse_format, u32_AFTER_ESCAPE),
     ADD(shttp_slice_skip, LEFT),
     ADD(shttp_slice_skip, EVERYTHING),
     ADD(shttp_slice_skip, NOT_ENOUGH),
@@ -870,6 +910,8 @@ int main(void) {
     ADD(shttp_slice_insert_format, ONLY_slice),
     ADD(shttp_slice_insert_format, MULTIPLE_slice),
     ADD(shttp_slice_insert_format, slice_INSIDE_TEXT),
+    ADD(shttp_slice_insert_format, u32_INSIDE_TEXT_ESCAPED),
+    ADD(shttp_slice_insert_format, u32_AFTER_ESCAPE),
     ADD(shttp_slice_cpy, BASIC),
     ADD(shttp_slice_cpy, TOO_SHORT),
   };

@@ -7,7 +7,7 @@
 #define BODY_BUFF_LENGTH 300
 #define ARR_CAPACITY 10
 #define MAX_CONNS 10
-#define PORT 1338
+#define PORT 80
 
 static char msg_buff[MSG_BUFF_LENGTH];
 static char body_buff[BODY_BUFF_LENGTH];
@@ -40,7 +40,7 @@ static void list(void) {
   if(arr_size == 0) return;
   for(i = 0; i < ARR_CAPACITY; i++) {
     if(arr[i] != -1) {
-      if(shttp_slice_insert_format(&body_slice, SHTTP_SLICE("{u32}:{i32}"), i,
+      if(shttp_slice_insert_format(&body_slice, SHTTP_SLICE("{u32}:{u16}"), i,
                                    arr[i])) {
         res.code = SHTTP_CODE_INTERNAL_SERVER_ERROR;
         return;
@@ -60,7 +60,7 @@ static void list(void) {
   }
 }
 
-static void create(uint32_t val) {
+static void create(uint16_t val) {
   if(arr_size == ARR_CAPACITY) {
     res.code = SHTTP_CODE_INSUFFICIENT_STORAGE;
     return;
@@ -91,7 +91,7 @@ static void read(uint32_t id) {
   }
 }
 
-static void update(uint32_t id, uint32_t val) {
+static void update(uint32_t id, uint16_t val) {
   if(arr[id] == -1) {
     res.code = SHTTP_CODE_NOT_FOUND;
     return;
@@ -116,14 +116,14 @@ static void path_dispatch(void) {
     options();
   } else if(!shttp_slice_parse_format(&path_slice, SHTTP_SLICE("/list"))) {
     list();
-  } else if(!shttp_slice_parse_format(&path_slice, SHTTP_SLICE("/create/{i32}"),
+  } else if(!shttp_slice_parse_format(&path_slice, SHTTP_SLICE("/create/{u16}"),
                                       &val)) {
     create(val);
   } else if(!shttp_slice_parse_format(&path_slice, SHTTP_SLICE("/read/{u32}"),
                                       &id)) {
     read(id);
   } else if(!shttp_slice_parse_format(
-              &path_slice, SHTTP_SLICE("/update/{u32}:{i32}"), &id, &val)) {
+              &path_slice, SHTTP_SLICE("/update/{u32}:{u16}"), &id, &val)) {
     update(id, val);
   } else if(!shttp_slice_parse_format(&path_slice, SHTTP_SLICE("/delete/{u32}"),
                                       &id)) {
