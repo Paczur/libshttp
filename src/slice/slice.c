@@ -320,6 +320,134 @@ cleanup:
   return status;
 }
 
+shttp_status shttp_slice_parse_format_delim(shttp_slice s[static 1],
+                                            shttp_slice format, char open,
+                                            char close, ...) {
+  shttp_slice format_region = {.begin = format.begin};
+  shttp_slice s_region = {.begin = s->begin};
+  shttp_slice s_copy = *s;
+  shttp_mut_slice stmp;
+  shttp_status status = SHTTP_STATUS_OK;
+  va_list arg_list;
+  va_start(arg_list, close);
+
+  while(true) {
+    // Go to the special expr
+    while(true) {
+      if(shttp_slice_skip_until(&format, open)) {
+        // Format ended, still need to check before
+      }
+
+      // Compare all normal text found until now
+      format_region.end = format.begin;
+      s_region.end = s_region.begin + shttp_slice_length(format_region);
+      if(s_region.end > s_copy.end) {
+        status = SHTTP_STATUS_SLICE_END;
+        goto cleanup;
+      }
+      if(!shttp_slice_eq(format_region, s_region)) {
+        status = SHTTP_STATUS_VALUE_INVALID;
+        goto cleanup;
+      }
+      s_copy.begin = s_region.end;
+      if(format.begin == format.end) goto cleanup;
+      if((status = shttp_slice_skip(&format, 1))) goto cleanup;
+      if(*format.begin == open) {
+        if(*s_copy.begin != open) {
+          status = SHTTP_STATUS_FORMAT_INVALID;
+          goto cleanup;
+        }
+        if((status = shttp_slice_skip(&s_copy, 1))) goto cleanup;
+        if((status = shttp_slice_skip(&format, 1))) goto cleanup;
+        format_region.begin = format.begin;
+        s_region.begin = s_copy.begin;
+      } else {
+        format_region.begin = format.begin;
+        s_region.begin = s_copy.begin;
+        break;
+      }
+    }
+
+    // Go to the end of special expr
+    if(shttp_slice_skip_past(&format, close)) {
+      status = SHTTP_STATUS_FORMAT_INVALID;
+      goto cleanup;
+    }
+    if(format.begin == format.end) {
+      s_region.end = s_copy.end;
+    } else {
+      if(shttp_slice_skip_until(&s_copy, *format.begin)) {
+        status = SHTTP_STATUS_VALUE_INVALID;
+        goto cleanup;
+      }
+      s_region.end = s_copy.begin;
+    }
+
+    // Parse special expr
+    format_region.end = format.begin - 1;
+    switch(*format_region.begin) {
+    case 's':
+      format_region.begin++;
+      if(!shttp_slice_eq(format_region, SHTTP_SLICE("lice"))) {
+        status = SHTTP_STATUS_FORMAT_INVALID;
+        goto cleanup;
+      }
+      stmp = va_arg(arg_list, shttp_mut_slice);
+      if((status = shttp_slice_cpy(&stmp, s_region))) goto cleanup;
+      break;
+    case 'u':
+      format_region.begin++;
+      if(shttp_slice_eq(format_region, SHTTP_SLICE("8"))) {
+        if((status =
+              shttp_slice_parse_u8(va_arg(arg_list, uint8_t *), &s_region)))
+          goto cleanup;
+      } else if(shttp_slice_eq(format_region, SHTTP_SLICE("16"))) {
+        if((status =
+              shttp_slice_parse_u16(va_arg(arg_list, uint16_t *), &s_region)))
+          goto cleanup;
+      } else if(shttp_slice_eq(format_region, SHTTP_SLICE("32"))) {
+        if((status =
+              shttp_slice_parse_u32(va_arg(arg_list, uint32_t *), &s_region)))
+          goto cleanup;
+      } else {
+        status = SHTTP_STATUS_FORMAT_INVALID;
+        goto cleanup;
+      }
+      break;
+    case 'i':
+      format_region.begin++;
+      if((shttp_slice_eq(format_region, SHTTP_SLICE("8")))) {
+        if((status =
+              shttp_slice_parse_i8(va_arg(arg_list, int8_t *), &s_region)))
+          goto cleanup;
+      } else if((shttp_slice_eq(format_region, SHTTP_SLICE("16")))) {
+        if((status =
+              shttp_slice_parse_i16(va_arg(arg_list, int16_t *), &s_region)))
+          goto cleanup;
+      } else if(shttp_slice_eq(format_region, SHTTP_SLICE("32"))) {
+        if((status =
+              shttp_slice_parse_i32(va_arg(arg_list, int32_t *), &s_region)))
+          goto cleanup;
+      } else {
+        status = SHTTP_STATUS_FORMAT_INVALID;
+        goto cleanup;
+      }
+      break;
+    default:
+      status = SHTTP_STATUS_FORMAT_INVALID;
+      goto cleanup;
+    }
+    format_region.begin = format.begin;
+    s_copy.begin = s_region.end;
+    s_region.begin = s_copy.begin;
+  }
+
+cleanup:
+  va_end(arg_list);
+  if(status == SHTTP_STATUS_OK) *s = s_copy;
+  return status;
+}
+
 shttp_status shttp_slice_skip(shttp_slice s[static 1], uint32_t x) {
   SHTTP_ASSERT(s != NULL);
   SHTTP_ASSERT(s->begin <= s->end);
@@ -767,6 +895,90 @@ shttp_status shttp_slice_insert_format(shttp_mut_slice s[static 1],
       }
     }
     if((status = shttp_slice_skip_past(&format, '}'))) goto cleanup;
+    format_region.end = format.begin - 1;
+
+    switch(*format_region.begin) {
+    case 's':
+      format_region.begin++;
+      if(!shttp_slice_eq(format_region, SHTTP_SLICE("lice"))) {
+        status = SHTTP_STATUS_FORMAT_INVALID;
+        goto cleanup;
+      }
+      if((status = shttp_slice_cpy(s, va_arg(arg_list, shttp_slice))))
+        goto cleanup;
+      break;
+    case 'u':
+      format_region.begin++;
+      if(shttp_slice_eq(format_region, SHTTP_SLICE("8"))) {
+        if((status = shttp_slice_insert_u8(s, (uint8_t)va_arg(arg_list, int))))
+          goto cleanup;
+      } else if(shttp_slice_eq(format_region, SHTTP_SLICE("16"))) {
+        if((status =
+              shttp_slice_insert_u16(s, (uint16_t)va_arg(arg_list, int))))
+          goto cleanup;
+      } else if(shttp_slice_eq(format_region, SHTTP_SLICE("32"))) {
+        if((status =
+              shttp_slice_insert_u32(s, (uint32_t)va_arg(arg_list, int))))
+          goto cleanup;
+      } else {
+        status = SHTTP_STATUS_FORMAT_INVALID;
+        goto cleanup;
+      }
+      break;
+    case 'i':
+      format_region.begin++;
+      if(shttp_slice_eq(format_region, SHTTP_SLICE("8"))) {
+        if((status = shttp_slice_insert_i8(s, (int8_t)va_arg(arg_list, int))))
+          goto cleanup;
+      } else if(shttp_slice_eq(format_region, SHTTP_SLICE("16"))) {
+        if((status = shttp_slice_insert_i16(s, (int16_t)va_arg(arg_list, int))))
+          goto cleanup;
+      } else if(shttp_slice_eq(format_region, SHTTP_SLICE("32"))) {
+        if((status = shttp_slice_insert_i32(s, (int32_t)va_arg(arg_list, int))))
+          goto cleanup;
+      } else {
+        status = SHTTP_STATUS_FORMAT_INVALID;
+        goto cleanup;
+      }
+      break;
+    default:
+      status = SHTTP_STATUS_FORMAT_INVALID;
+      goto cleanup;
+    }
+    format_region.begin = format.begin;
+  }
+
+cleanup:
+  va_end(arg_list);
+  return status;
+}
+
+shttp_status shttp_slice_insert_format_delim(shttp_mut_slice s[static 1],
+                                             shttp_slice format, char open,
+                                             char close, ...) {
+  shttp_slice format_region = {.begin = format.begin, .end = format.begin};
+  shttp_status status = SHTTP_STATUS_OK;
+  va_list arg_list;
+  va_start(arg_list, close);
+
+  while(true) {
+    while(true) {
+      if(shttp_slice_skip_until(&format, open)) {
+      }
+      format_region.end = format.begin;
+      if((status = shttp_slice_cpy(s, format_region))) goto cleanup;
+      if(format.begin == format.end) goto cleanup;
+      if((status = shttp_slice_skip(&format, 1))) goto cleanup;
+      if(*format.begin == open) {
+        if((status = shttp_slice_cpy_char(s, open))) goto cleanup;
+        if((status = shttp_slice_skip(&format, 1))) goto cleanup;
+        format_region.begin = format.begin;
+      } else {
+        format_region.begin = format.begin;
+        break;
+      }
+    }
+    if((status = shttp_slice_skip_past(&format, close))) goto cleanup;
     format_region.end = format.begin - 1;
 
     switch(*format_region.begin) {

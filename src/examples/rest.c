@@ -36,8 +36,8 @@ static void options(void) {
 }
 
 static shttp_status print_entry(uint32_t id) {
-  return shttp_slice_insert_format(
-    &body_slice, SHTTP_SLICE("{{\"id\": {u32}, \"value\": {i32}}"), id,
+  return shttp_slice_insert_format_delim(
+    &body_slice, SHTTP_SLICE("{\"id\": (u32), \"value\": (i32)}"), '(', ')', id,
     arr[id]);
 }
 

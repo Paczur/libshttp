@@ -50,6 +50,10 @@ SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_i8(int8_t out[static 1],
 SHTTP_UNUSED_RESULT shttp_status
 shttp_slice_parse_format(shttp_slice s[static 1], shttp_slice format, ...);
 
+// Same as shttp_slice_parse_format but allows to choose delimiters for specials
+SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_format_delim(
+  shttp_slice s[static 1], shttp_slice format, char open, char close, ...);
+
 // returns: SLICE_END
 SHTTP_UNUSED_RESULT shttp_status shttp_slice_skip(shttp_slice s[static 1],
                                                   uint32_t x);
@@ -139,6 +143,12 @@ shttp_slice_insert_i8(shttp_mut_slice s[static 1], int8_t val);
 // returns: SLICE_END, FORMAT_INVALID
 shttp_status shttp_slice_insert_format(shttp_mut_slice s[static 1],
                                        shttp_slice format, ...);
+
+// Same as shttp_slice_insert_format but allows to choose delimiters for
+// specials
+shttp_status shttp_slice_insert_format_delim(shttp_mut_slice s[static 1],
+                                             shttp_slice format, char open,
+                                             char close, ...);
 
 // returns: SLICE_END
 SHTTP_UNUSED_RESULT shttp_status shttp_slice_cpy(shttp_mut_slice msg[static 1],
