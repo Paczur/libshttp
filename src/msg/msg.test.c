@@ -1,7 +1,9 @@
-#include "msg.c"
-
-#include "../slice/slice.c"
+// clang-format off
 #include "../test.h"
+
+#include "msg.c"
+#include "../slice/slice.c"
+// clang-format on
 
 TEST(method, GET) {
   shttp_request req;

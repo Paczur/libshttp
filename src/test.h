@@ -1,6 +1,8 @@
 #ifndef SHTTP_TEST_H
 #define SHTTP_TEST_H
 
+#define SHTTP_ASSERT(x) mock_assert((int)(x), #x, __FILE__, __LINE__);
+
 #define TEST(function, case) static void function##_test_##case(void **state)
 #define ADD(function, case) cmocka_unit_test(function##_test_##case)
 #define SETUP(function) static int function##_test_setup(void **state)

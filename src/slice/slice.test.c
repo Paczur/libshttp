@@ -1,6 +1,8 @@
-#include "slice.c"
-
+// clang-format off
 #include "../test.h"
+
+#include "slice.c"
+// clang-format on
 
 TEST(shttp_slice_parse_newline, CRLF) {
   const char msg[] = "\r\n";
@@ -148,6 +150,86 @@ TEST(shttp_slice_parse_i32, NAN) {
                    shttp_slice_parse_i32(&n, &smsg));
   assert_ptr_equal(msg + sizeof(msg) - 2, smsg.begin);
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
+}
+
+TEST(shttp_slice_parse_format, NO_ARGS) {
+  shttp_slice text = SHTTP_SLICE("Text to check");
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_parse_format(&text, text));
+  assert_ptr_equal(text.end, text.begin);
+}
+
+TEST(shttp_slice_parse_format, ONLY_u32) {
+  uint32_t val;
+  shttp_slice slice = SHTTP_SLICE("23");
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_parse_format(
+                                      &slice, SHTTP_SLICE("{u32}"), &val));
+  assert_int_equal(23, val);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_parse_format, MULTIPLE_u32) {
+  uint32_t val;
+  uint32_t val2;
+  shttp_slice slice = SHTTP_SLICE("23 32");
+  assert_int_equal(
+    SHTTP_STATUS_OK,
+    shttp_slice_parse_format(&slice, SHTTP_SLICE("{u32} {u32}"), &val, &val2));
+  assert_int_equal(23, val);
+  assert_int_equal(32, val2);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_parse_format, u32_INSIDE_TEXT) {
+  uint32_t val;
+  shttp_slice slice = SHTTP_SLICE("thing: 23,");
+  assert_int_equal(
+    SHTTP_STATUS_OK,
+    shttp_slice_parse_format(&slice, SHTTP_SLICE("thing: {u32},"), &val));
+  assert_int_equal(23, val);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_parse_format, ONLY_slice) {
+  char buff[25];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  shttp_slice res = SHTTP_SLICE("string");
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_parse_format(
+                                      &res, SHTTP_SLICE("{slice}"), slice));
+  assert_memory_equal("string", buff, sizeof("string") - 1);
+  assert_ptr_equal(res.end, res.begin);
+}
+
+TEST(shttp_slice_parse_format, MULTIPLE_slice) {
+  char buff[25];
+  char buff2[25];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  shttp_mut_slice slice2 = SHTTP_MUT_SLICE(buff2);
+  shttp_slice res = SHTTP_SLICE("string str");
+  assert_int_equal(SHTTP_STATUS_OK,
+                   shttp_slice_parse_format(
+                     &res, SHTTP_SLICE("{slice} {slice}"), slice, slice2));
+  assert_memory_equal("string", buff, sizeof("string") - 1);
+  assert_memory_equal("str", buff2, sizeof("str") - 1);
+  assert_ptr_equal(res.end, res.begin);
+}
+
+TEST(shttp_slice_parse_format, slice_INSIDE_TEXT) {
+  char buff[25];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  shttp_slice res = SHTTP_SLICE("thing: string,");
+  assert_int_equal(
+    SHTTP_STATUS_OK,
+    shttp_slice_parse_format(&res, SHTTP_SLICE("thing: {slice},"), slice));
+  assert_memory_equal("string", buff, sizeof("string") - 1);
+  assert_ptr_equal(res.end, res.begin);
+}
+
+TEST(shttp_slice_parse_format, NOT_CLOSED) {
+  uint32_t val;
+  shttp_slice slice = SHTTP_SLICE("23");
+  assert_int_equal(SHTTP_STATUS_FORMAT_INVALID,
+                   shttp_slice_parse_format(&slice, SHTTP_SLICE("{u32"), &val));
+  assert_ptr_equal(slice.end - sizeof("23") + 1, slice.begin);
 }
 
 TEST(shttp_slice_skip, LEFT) {
@@ -571,6 +653,115 @@ TEST(shttp_slice_insert_newline, TOO_SHORT) {
   assert_string_equal("\r", msg);
 }
 
+TEST(shttp_slice_insert_u32, BASIC) {
+  char buff[5];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_insert_u32(&slice, 1234));
+  assert_memory_equal("1234", buff, sizeof("1234") - 1);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_insert_u32, TOO_SHORT) {
+  char buff[4];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_SLICE_END,
+                   shttp_slice_insert_u32(&slice, 1234));
+  assert_memory_equal("123", buff, sizeof("123") - 1);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_insert_i32, BASIC) {
+  char buff[6];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_insert_i32(&slice, -1234));
+  assert_memory_equal("-1234", buff, sizeof("-1234") - 1);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_insert_i32, TOO_SHORT) {
+  char buff[5];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_SLICE_END,
+                   shttp_slice_insert_i32(&slice, -1234));
+  assert_memory_equal("-123", buff, sizeof("-123") - 1);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_insert_i32, ONLY_MINUS) {
+  char buff[2];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_SLICE_END,
+                   shttp_slice_insert_i32(&slice, -1234));
+  assert_memory_equal("-", buff, sizeof("-") - 1);
+  assert_ptr_equal(slice.end, slice.begin);
+}
+
+TEST(shttp_slice_insert_format, NO_ARGS) {
+  char buff[10];
+  const char res[] = "string";
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_OK,
+                   shttp_slice_insert_format(&slice, SHTTP_SLICE(res)));
+  assert_memory_equal(res, buff, sizeof(res) - 1);
+}
+
+TEST(shttp_slice_insert_format, ONLY_u32) {
+  char buff[10];
+  const char res[] = "23";
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_OK,
+                   shttp_slice_insert_format(&slice, SHTTP_SLICE("{u32}"), 23));
+  assert_memory_equal(res, buff, sizeof(res) - 1);
+}
+
+TEST(shttp_slice_insert_format, MULTIPLE_u32) {
+  char buff[10];
+  const char res[] = "23 42";
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(
+    SHTTP_STATUS_OK,
+    shttp_slice_insert_format(&slice, SHTTP_SLICE("{u32} {u32}"), 23, 42));
+  assert_memory_equal(res, buff, sizeof(res) - 1);
+}
+
+TEST(shttp_slice_insert_format, u32_INSIDE_TEXT) {
+  char buff[15];
+  const char res[] = "value: 23,";
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(
+    SHTTP_STATUS_OK,
+    shttp_slice_insert_format(&slice, SHTTP_SLICE("value: {u32},"), 23));
+  assert_memory_equal(res, buff, sizeof(res) - 1);
+}
+
+TEST(shttp_slice_insert_format, ONLY_slice) {
+  char buff[25];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_OK,
+                   shttp_slice_insert_format(&slice, SHTTP_SLICE("{slice}"),
+                                             SHTTP_SLICE("string")));
+  assert_memory_equal("string", buff, sizeof("string") - 1);
+}
+
+TEST(shttp_slice_insert_format, MULTIPLE_slice) {
+  char buff[50];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(
+    SHTTP_STATUS_OK,
+    shttp_slice_insert_format(&slice, SHTTP_SLICE("{slice} {slice}"),
+                              SHTTP_SLICE("string"), SHTTP_SLICE("str")));
+  assert_memory_equal("string str", buff, sizeof("string str") - 1);
+}
+
+TEST(shttp_slice_insert_format, slice_INSIDE_TEXT) {
+  char buff[25];
+  shttp_mut_slice slice = SHTTP_MUT_SLICE(buff);
+  assert_int_equal(SHTTP_STATUS_OK, shttp_slice_insert_format(
+                                      &slice, SHTTP_SLICE("thing: {slice},"),
+                                      SHTTP_SLICE("string")));
+  assert_memory_equal("thing: string", buff, sizeof("thing: string") - 1);
+}
+
 TEST(shttp_slice_cpy, BASIC) {
   const char slice[] = "slice";
   char msg[sizeof(slice)];
@@ -610,6 +801,14 @@ int main(void) {
     ADD(shttp_slice_parse_i32, NEGATIVE_90),
     ADD(shttp_slice_parse_i32, END),
     ADD(shttp_slice_parse_i32, NAN),
+    ADD(shttp_slice_parse_format, NO_ARGS),
+    ADD(shttp_slice_parse_format, ONLY_u32),
+    ADD(shttp_slice_parse_format, MULTIPLE_u32),
+    ADD(shttp_slice_parse_format, u32_INSIDE_TEXT),
+    ADD(shttp_slice_parse_format, ONLY_slice),
+    ADD(shttp_slice_parse_format, MULTIPLE_slice),
+    ADD(shttp_slice_parse_format, slice_INSIDE_TEXT),
+    ADD(shttp_slice_parse_format, NOT_CLOSED),
     ADD(shttp_slice_skip, LEFT),
     ADD(shttp_slice_skip, EVERYTHING),
     ADD(shttp_slice_skip, NOT_ENOUGH),
@@ -659,6 +858,18 @@ int main(void) {
     ADD(shttp_header_value, COMMA_SPACE),
     ADD(shttp_slice_insert_newline, BASIC),
     ADD(shttp_slice_insert_newline, TOO_SHORT),
+    ADD(shttp_slice_insert_u32, BASIC),
+    ADD(shttp_slice_insert_u32, TOO_SHORT),
+    ADD(shttp_slice_insert_i32, BASIC),
+    ADD(shttp_slice_insert_i32, TOO_SHORT),
+    ADD(shttp_slice_insert_i32, ONLY_MINUS),
+    ADD(shttp_slice_insert_format, NO_ARGS),
+    ADD(shttp_slice_insert_format, ONLY_u32),
+    ADD(shttp_slice_insert_format, MULTIPLE_u32),
+    ADD(shttp_slice_insert_format, u32_INSIDE_TEXT),
+    ADD(shttp_slice_insert_format, ONLY_slice),
+    ADD(shttp_slice_insert_format, MULTIPLE_slice),
+    ADD(shttp_slice_insert_format, slice_INSIDE_TEXT),
     ADD(shttp_slice_cpy, BASIC),
     ADD(shttp_slice_cpy, TOO_SHORT),
   };

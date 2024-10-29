@@ -12,8 +12,8 @@
 
 SHTTP_UNUSED_RESULT static shttp_status method(shttp_request req[static 1],
                                                shttp_slice msg[static 1]) {
-  SHTTP_ASSERT(req);
-  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(req != NULL);
+  SHTTP_ASSERT(msg != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
 #define X(x)                                             \
   else if(SHTTP_STARTS_WITH(*msg, #x)) {                 \
@@ -35,8 +35,8 @@ SHTTP_UNUSED_RESULT static shttp_status method(shttp_request req[static 1],
 
 SHTTP_UNUSED_RESULT static shttp_status path(shttp_request req[static 1],
                                              shttp_slice msg[static 1]) {
-  SHTTP_ASSERT(req);
-  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(req != NULL);
+  SHTTP_ASSERT(msg != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
   if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
   req->path.begin = msg->begin;
@@ -47,8 +47,8 @@ SHTTP_UNUSED_RESULT static shttp_status path(shttp_request req[static 1],
 
 SHTTP_UNUSED_RESULT static shttp_status parse_version(
   shttp_request req[static 1], shttp_slice msg[static 1]) {
-  SHTTP_ASSERT(req);
-  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(req != NULL);
+  SHTTP_ASSERT(msg != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
   if((size_t)(msg->end - msg->begin) < sizeof("HTTP/1.0") - 1)
     return SHTTP_STATUS_SLICE_END;
@@ -73,8 +73,8 @@ SHTTP_UNUSED_RESULT static shttp_status parse_version(
 
 SHTTP_UNUSED_RESULT static shttp_status request_line(
   shttp_request req[static 1], shttp_slice msg[static 1]) {
-  SHTTP_ASSERT(req);
-  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(req != NULL);
+  SHTTP_ASSERT(msg != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(method(req, msg));
   SHTTP_PROP(shttp_slice_parse_space(msg));
@@ -86,8 +86,8 @@ SHTTP_UNUSED_RESULT static shttp_status request_line(
 
 SHTTP_UNUSED_RESULT static shttp_status slices(shttp_request req[static 1],
                                                shttp_slice msg[static 1]) {
-  SHTTP_ASSERT(req);
-  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(req != NULL);
+  SHTTP_ASSERT(msg != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
   shttp_status status;
   const char *t;
@@ -110,8 +110,8 @@ SHTTP_UNUSED_RESULT static shttp_status slices(shttp_request req[static 1],
 
 SHTTP_UNUSED_RESULT static shttp_status insert_version(
   shttp_mut_slice msg[static 1], const shttp_response res[static 1]) {
-  SHTTP_ASSERT(res);
-  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(res != NULL);
+  SHTTP_ASSERT(msg != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(SHTTP_CPY(msg, "HTTP/"));
   switch(res->version) {
@@ -135,8 +135,8 @@ SHTTP_UNUSED_RESULT static shttp_status insert_version(
 
 SHTTP_UNUSED_RESULT static shttp_status code(
   shttp_mut_slice msg[static 1], const shttp_response res[static 1]) {
-  SHTTP_ASSERT(msg);
-  SHTTP_ASSERT(res);
+  SHTTP_ASSERT(msg != NULL);
+  SHTTP_ASSERT(res != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
   char *restrict beginm = msg->begin;
   char *restrict const endm = msg->end;
@@ -174,8 +174,8 @@ SHTTP_UNUSED_RESULT static shttp_status code(
 
 SHTTP_UNUSED_RESULT static shttp_resi status_line(
   shttp_mut_slice msg[static 1], const shttp_response res[static 1]) {
-  SHTTP_ASSERT(msg);
-  SHTTP_ASSERT(res);
+  SHTTP_ASSERT(msg != NULL);
+  SHTTP_ASSERT(res != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(insert_version(msg, res));
   if(msg->begin == msg->end) return SHTTP_STATUS_SLICE_END;
@@ -187,8 +187,8 @@ SHTTP_UNUSED_RESULT static shttp_resi status_line(
 
 shttp_status shttp_msg_request(shttp_request req[static 1],
                                shttp_slice msg[static 1]) {
-  SHTTP_ASSERT(req);
-  SHTTP_ASSERT(msg);
+  SHTTP_ASSERT(req != NULL);
+  SHTTP_ASSERT(msg != NULL);
   SHTTP_ASSERT(msg->begin <= msg->end);
   SHTTP_PROP(request_line(req, msg));
   SHTTP_PROP(slices(req, msg));

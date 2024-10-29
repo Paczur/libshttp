@@ -4,9 +4,9 @@
 #include "../conf.h"
 #include "../types.h"
 
-SHTTP_PURE uint32_t shttp_slice_length(shttp_slice s[static 1]);
+SHTTP_PURE uint32_t shttp_slice_length(shttp_slice s);
 
-SHTTP_PURE bool shttp_slice_empty(shttp_slice s[static 1]);
+SHTTP_PURE bool shttp_slice_empty(shttp_slice s);
 
 // returns: SLICE_END, NEWLINE_EXPECTED
 SHTTP_UNUSED_RESULT shttp_status
@@ -43,6 +43,12 @@ SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_i16(int16_t out[static 1],
 // returns: SLICE_END, VALUE_INVALID
 SHTTP_UNUSED_RESULT shttp_status shttp_slice_parse_i8(int8_t out[static 1],
                                                       shttp_slice s[static 1]);
+
+/* On success moves s to the end of parsed text
+ * returns: SLICE_END, VALUE_INVALID, FORMAT_INVALID
+ */
+SHTTP_UNUSED_RESULT shttp_status
+shttp_slice_parse_format(shttp_slice s[static 1], shttp_slice format, ...);
 
 // returns: SLICE_END
 SHTTP_UNUSED_RESULT shttp_status shttp_slice_skip(shttp_slice s[static 1],
@@ -107,6 +113,34 @@ SHTTP_UNUSED_RESULT shttp_status
 shttp_slice_insert_newline(shttp_mut_slice msg[static 1]);
 
 // returns: SLICE_END
+SHTTP_UNUSED_RESULT shttp_status
+shttp_slice_insert_u32(shttp_mut_slice s[static 1], uint32_t val);
+
+// returns: SLICE_END
+SHTTP_UNUSED_RESULT shttp_status
+shttp_slice_insert_u16(shttp_mut_slice s[static 1], uint16_t val);
+
+// returns: SLICE_END
+SHTTP_UNUSED_RESULT shttp_status
+shttp_slice_insert_u8(shttp_mut_slice s[static 1], uint8_t val);
+
+// returns: SLICE_END
+SHTTP_UNUSED_RESULT shttp_status
+shttp_slice_insert_i32(shttp_mut_slice s[static 1], int32_t val);
+
+// returns: SLICE_END
+SHTTP_UNUSED_RESULT shttp_status
+shttp_slice_insert_i16(shttp_mut_slice s[static 1], int16_t val);
+
+// returns: SLICE_END
+SHTTP_UNUSED_RESULT shttp_status
+shttp_slice_insert_i8(shttp_mut_slice s[static 1], int8_t val);
+
+// returns: SLICE_END, FORMAT_INVALID
+shttp_status shttp_slice_insert_format(shttp_mut_slice s[static 1],
+                                       shttp_slice format, ...);
+
+// returns: SLICE_END
 SHTTP_UNUSED_RESULT shttp_status shttp_slice_cpy(shttp_mut_slice msg[static 1],
                                                  shttp_slice slice);
 
@@ -115,3 +149,4 @@ SHTTP_UNUSED_RESULT shttp_status
 shttp_slice_cpy_char(shttp_mut_slice msg[static 1], char c);
 
 #endif
+
