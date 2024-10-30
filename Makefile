@@ -72,7 +72,7 @@ so: $(SO)
 
 examples: $(EXAMPLES_BIN)
 
-tests: CFLAGS += $(LIBS_TEST) $(NO_WARN_TEST_FLAGS)
+tests: CFLAGS += $(LIBS_TESTS) $(NO_WARN_TEST_FLAGS)
 tests: $(TESTS_BIN)
 
 $(SO): $(LIB_SRC) | $(INCLUDE_DIR)
@@ -85,7 +85,8 @@ $(BIN_DIR)/libshttp: $(LIB_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -MMD -MP -o $@ $^
 
 $(TEST_DIR)/%.test: $(SRC_DIR)/%/*.test.c $(SRC_DIR)/%/*.c | $(TEST_DIR)
-	$(CC) $(CFLAGS) -MMD -MP -o $@ $<
+	$(info $(CC) $(CFLAGS) -o $@ $<)
+	$(CC) $(CFLAGS) -o $@ $<
 	./$@
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)

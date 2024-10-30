@@ -17,9 +17,9 @@
 #define timer_valid(i, conn_timers, conn_count) \
   (i < conn_count && conn_timers[i].time != -1)
 
-static shttp_conn_id timer_find_index(shttp_conn_id conn,
-                                      shttp_conn_timer *conn_timers,
-                                      shttp_conn_id conn_count) {
+SHTTP_PURE static shttp_conn_id timer_find_index(shttp_conn_id conn,
+                                                 shttp_conn_timer *conn_timers,
+                                                 shttp_conn_id conn_count) {
   SHTTP_ASSERT(conn_timers);
   shttp_conn_id i = 0;
   while(i < conn_count && conn_timers[i].time != -1 &&
