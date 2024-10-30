@@ -1,42 +1,59 @@
-BIN=bin
-BUILD=build
-TESTB=bin/tests
-DIRS=$(BIN) $(BUILD)
-SRC=src
-EX=$(BIN)/examples
+BIN_DIR=bin
+BUILD_DIR=build
+TEST_DIR=$(BIN_DIR)/tests
+SRC_DIR=src
+EXAMPLE_DIR=$(BIN_DIR)/examples
+INCLUDE_DIR=include
+DIRS=$(BIN) $(BUILD) $(INCLUDE_DIR)
+SO=$(INCLUDE_DIR)/libshttp.so
 
-NO_WARN=-Wno-packed-bitfield-compat
-WARN=-Wall -Wextra -Werror -Wno-error=cpp -Wunused-result -Wvla -Wshadow -Wstrict-prototypes -Wsuggest-attribute=pure -Wsuggest-attribute=const $(NO_WARN)
-NO_WARN_TESTS=-Wno-unused-parameter
-MEMORY_DEBUG=-fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract
-DEBUG=$(MEMORY_DEBUG) -Og -ggdb3  -fsanitize=undefined -fsanitize-address-use-after-scope -fstack-check -fno-stack-clash-protection
-LIBS=$(shell pkg-config --cflags --libs cmocka)
-RELEASE=-O3 -s -pipe -flto=4 -fwhole-program -D NDEBUG
-CFLAGS=$(WARN) -march=native -std=gnu99 $(LIBS)
+CFLAGS_BASE=-std=gnu99
+CFLAGS=$(CFLAGS_BASE)
+SO_FLAGS=-fpic -shared
+OPTIMIZE_FLAGS=-march=native -O2 -s -pipe -flto=4 -D NDEBUG
+OPTIMIZE_BIN_FLAGS=$(OPTIMIZE_FLAGS) -fwhole-program
 
-EXAMPLES=$(wildcard $(SRC)/examples/*.c)
-BIN_EXAMPLES=$(patsubst $(SRC)/examples/%.c, $(EX)/%, $(EXAMPLES))
-TESTS=$(wildcard $(SRC)/*.test.c $(SRC)/*/*.test.c)
-BIN_TESTS=$(patsubst %/,$(TESTB)/%.test,$(dir $(subst $(SRC)/,,$(TESTS))))
-SOURCES=$(filter-out $(EXAMPLES), $(filter-out $(TESTS), $(wildcard $(SRC)/*.c $(SRC)/**/*.c)))
-OBJECTS=$(patsubst $(SRC)/%.c,$(BUILD)/%.o,$(SOURCES))
-DEPENDS=$(patsubst $(SRC)/%.c,$(BUILD)/%.d,$(SOURCES))
+NO_WARN_TEST_FLAGS=-Wno-unused-parameter
+WARN_FLAGS=-Wall -Wextra -Werror -Wno-error=cpp -Wunused-result -Wvla -Wshadow -Wstrict-prototypes -Wsuggest-attribute=pure -Wsuggest-attribute=const
+MEMORY_DEBUG_FLAGS=-fsanitize=address -fsanitize=pointer-compare -fsanitize=pointer-subtract
+SANTIIZER_FLAGS=-fsanitize=undefined -fsanitize-address-use-after-scope -fstack-check -fno-stack-clash-protection
+DEBUG_FLAGS=$(WARN_FLAGS) $(MEMORY_DEBUG_FLAGS) $(SANITIZER_FLAGS) -Og -ggdb3
 
-all: release
+PROFILE_MEMORY_FLAGS=-fstack-usage
+LIBS_TESTS=$(shell pkg-config --cflags --libs cmocka)
 
-$(shell mkdir -p $(dir $(DEPENDS)))
--include $(DEPENDS)
+EXAMPLES_SRC=$(wildcard $(SRC_DIR)/examples/*.c)
+EXAMPLES_BIN=$(patsubst $(SRC_DIR)/examples/%.c, $(EXAMPLE_DIR)/%, $(EXAMPLES_SRC))
 
-.PHONY: all install uninstall release debug clean check tests
-MAKEFLAGS := --jobs=$(shell nproc)
-MAKEFLAGS += --output-sync=target
+TESTS_SRC=$(wildcard $(SRC_DIR)/*.test.c $(SRC_DIR)/*/*.test.c)
+TESTS_BIN=$(patsubst %/,$(TEST_DIR)/%.test,$(dir $(subst $(SRC_DIR)/,,$(TESTS_SRC))))
+
+LIB_SRC=$(filter-out $(EXAMPLES_SRC), $(filter-out $(TESTS_SRC), $(wildcard $(SRC_DIR)/*.c $(SRC_DIR)/**/*.c)))
+LIB_OBJ=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(LIB_SRC))
+LIB_DEP=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.d,$(LIB_SRC))
+
+all: shared release
+
+$(shell mkdir -p $(dir $(LIB_DEP)))
+-include $(LIB_DEP)
+
+.PHONY: all shared release debug profile_memory check clean clean_executables so examples tests
 $(VERBOSE).SILENT:
 
-release: CFLAGS += $(RELEASE)
+release: CFLAGS += $(OPTIMIZE_BIN_FLAGS)
 release: examples
 
-debug: CFLAGS += $(DEBUG)
+debug: CFLAGS += $(DEBUG_FLAGS)
 debug: tests examples
+
+shared: CFLAGS += $(OPTIMIZE_FLAGS)
+shared: so
+
+profile_memory: clean_executables
+profile_memory: CFLAGS += $(PROFILE_MEMORY_FLAGS) $(OPTIMIZE_BIN_FLAGS)
+profile_memory: examples
+profile_memory: CFLAGS = $(CFLAGS_BASE) $(PROFILE_MEMORY_FLAGS) $(OPTIMIZE_FLAGS)
+profile_memory: so
 
 check: tests
 check:
@@ -45,37 +62,46 @@ check:
 	done \
 
 clean:
-	rm -rf $(BIN) $(BUILD) $(CCACHE_DIR)
+	rm -rf $(BIN_DIR) $(BUILD_DIR) $(INCLUDE_DIR)
 
-examples: $(BIN_EXAMPLES)
+clean_executables:
+	rm -rf $(BIN_DIR) $(INCLUDE_DIR)
 
-tests: $(BIN_TESTS)
+so: CFLAGS += $(SO_FLAGS)
+so: $(SO)
 
-$(EX)/%:$(SRC)/examples/%.c $(OBJECTS) | $(EX)
+examples: $(EXAMPLES_BIN)
+
+tests: CFLAGS += $(LIBS_TEST) $(NO_WARN_TEST_FLAGS)
+tests: $(TESTS_BIN)
+
+$(SO): $(LIB_SRC) | $(INCLUDE_DIR)
+	$(CC) $(CFLAGS) -o $@ $^
+
+$(EXAMPLE_DIR)/%:$(SRC_DIR)/examples/%.c $(LIB_OBJ) | $(EXAMPLE_DIR)
 	$(CC) $(CFLAGS) -MMD -MP -o $@ $^
 
-$(BIN)/libshttp: $(OBJECTS) | $(BIN)
+$(BIN_DIR)/libshttp: $(LIB_OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -MMD -MP -o $@ $^
 
-$(TESTB)/%.test: $(SRC)/%/*.test.c $(SRC)/%/*.c | $(TESTB)
-	$(CC) $(CFLAGS) -MMD -MP $(NO_WARN_TESTS) -o $@ $<
+$(TEST_DIR)/%.test: $(SRC_DIR)/%/*.test.c $(SRC_DIR)/%/*.c | $(TEST_DIR)
+	$(CC) $(CFLAGS) -MMD -MP -o $@ $<
 	./$@
 
-$(TESTB)/%.test: $(SRC)/%.test.c | $(TESTB)
-	$(CC) $(CFLAGS) -MMD -MP $(NO_WARN_TESTS) -o $@ $<
-	./$@
-
-$(BUILD)/%.o: $(SRC)/%.c | $(BUILD)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -MMD -MP -c -o $@ $<
 
-$(BIN):
-	mkdir -p $(BIN)
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
 
-$(BUILD):
-	mkdir -p $(dir $(OBJECTS)) $(dir $(DEPENDS))
+$(BUILD_DIR):
+	mkdir -p $(dir $(LIB_OBJ)) $(dir $(LIB_DEP))
 
-$(TESTB):
-	mkdir -p $(TESTB)
+$(TEST_DIR):
+	mkdir -p $(TEST_DIR)
 
-$(EX):
-	mkdir -p $(EX)
+$(EXAMPLE_DIR):
+	mkdir -p $(EXAMPLE_DIR)
+
+$(INCLUDE_DIR):
+	mkdir -p $(INCLUDE_DIR)

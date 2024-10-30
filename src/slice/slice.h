@@ -4,9 +4,9 @@
 #include "../conf.h"
 #include "../types.h"
 
-SHTTP_PURE uint32_t shttp_slice_length(shttp_slice s);
+SHTTP_CONST uint32_t shttp_slice_length(shttp_slice s);
 
-SHTTP_PURE bool shttp_slice_empty(shttp_slice s);
+SHTTP_CONST bool shttp_slice_empty(shttp_slice s);
 
 // returns: SLICE_END, NEWLINE_EXPECTED
 SHTTP_UNUSED_RESULT shttp_status

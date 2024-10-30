@@ -4,12 +4,12 @@
 #include <stdarg.h>
 #include <string.h>
 
-SHTTP_PURE uint32_t shttp_slice_length(shttp_slice s) {
+uint32_t shttp_slice_length(shttp_slice s) {
   SHTTP_ASSERT(s.end >= s.begin);
   return s.end - s.begin;
 }
 
-SHTTP_PURE bool shttp_slice_empty(shttp_slice s) { return s.end <= s.begin; }
+bool shttp_slice_empty(shttp_slice s) { return s.end <= s.begin; }
 
 shttp_status shttp_slice_parse_newline(shttp_slice s[static 1]) {
   SHTTP_ASSERT(s != NULL);
