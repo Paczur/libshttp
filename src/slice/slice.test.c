@@ -807,7 +807,7 @@ TEST(shttp_slice_cpy, BASIC) {
   shttp_mut_slice smsg = SHTTP_MUT_SLICE(msg);
   assert_int_equal(SHTTP_STATUS_OK, shttp_slice_cpy(&smsg, sslice));
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
-  assert_string_equal(slice, msg);
+  assert_memory_equal(slice, msg, sizeof(msg) - 1);
 }
 
 TEST(shttp_slice_cpy, TOO_SHORT) {
@@ -817,7 +817,7 @@ TEST(shttp_slice_cpy, TOO_SHORT) {
   shttp_mut_slice smsg = SHTTP_MUT_SLICE(msg);
   assert_int_equal(SHTTP_STATUS_SLICE_END, shttp_slice_cpy(&smsg, sslice));
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
-  assert_string_equal("slic", msg);
+  assert_memory_equal("slic", msg, sizeof(msg) - 1);
 }
 
 int main(void) {
