@@ -101,10 +101,10 @@ SHTTP_UNUSED_RESULT static shttp_status slices(shttp_request req[static 1],
   }
   req->headers.end = t;
   if(msg->begin == msg->end) return SHTTP_STATUS_OK;
-  t = msg->begin;
+  req->body.begin = t;
   SHTTP_PROP(shttp_slice_skip_until_newline(msg));
-  msg->end = msg->begin;
-  msg->begin = t;
+  req->body.end = msg->begin;
+  msg->begin = msg->end;
   return SHTTP_STATUS_OK;
 }
 

@@ -90,9 +90,10 @@ TEST(slices, HEADER_BODY) {
   assert_ptr_equal(msg, req.headers.begin);
   assert_ptr_equal(msg + sizeof("Header: value value2\r\n") - 1,
                    req.headers.end);
-  assert_ptr_equal(msg + sizeof("Header: value value2\r\n\r\n") - 1,
-                   smsg.begin);
-  assert_ptr_equal(msg + sizeof(msg) - 3, smsg.end);
+  assert_ptr_equal(
+    msg + sizeof("Header: value value2\r\n\r\nBody message\r\n") - 1,
+    smsg.begin);
+  assert_ptr_equal(msg + sizeof(msg) - 1, smsg.end);
 }
 
 TEST(insert_version, 1_0) {
@@ -107,7 +108,7 @@ TEST(insert_version, 1_0) {
 
 TEST(code, OK) {
   const char ans[] = "200 OK";
-  char msg[sizeof(ans)];
+  char msg[sizeof(ans)] = {0};
   shttp_mut_slice smsg = SHTTP_MUT_SLICE(msg);
   shttp_response res = {.code = 200};
   assert_int_equal(SHTTP_STATUS_OK, code(&smsg, &res));
@@ -117,7 +118,7 @@ TEST(code, OK) {
 
 TEST(status_line, 1_1_OK) {
   const char ans[] = "HTTP/1.1 200 OK\r\n";
-  char msg[sizeof(ans)];
+  char msg[sizeof(ans)] = {0};
   shttp_mut_slice smsg = {msg, msg + sizeof(msg)};
   shttp_response res = {.version = SHTTP_VERSION_1_1, .code = 200};
   assert_int_equal(SHTTP_STATUS_OK, status_line(&smsg, &res));
@@ -128,7 +129,7 @@ TEST(status_line, 1_1_OK) {
 
 TEST(shttp_msg_response, START_ONLY) {
   const char ans[] = "HTTP/1.0 200 OK\r\n\r\n";
-  char msg[sizeof(ans)];
+  char msg[sizeof(ans)] = {0};
   shttp_mut_slice smsg = {msg, msg + sizeof(msg)};
   shttp_response res = {.version = SHTTP_VERSION_1_0, .code = 200};
   assert_int_equal(SHTTP_STATUS_OK, shttp_msg_response(&smsg, &res));
@@ -140,7 +141,7 @@ TEST(shttp_msg_response, START_ONLY) {
 TEST(shttp_msg_response, HEADERS) {
   const char ans[] = "HTTP/1.0 200 OK\r\nConnection: keep-alive\r\n\r\n";
   const char headers[] = "Connection: keep-alive\r\n";
-  char msg[sizeof(ans)];
+  char msg[sizeof(ans)] = {0};
   shttp_mut_slice smsg = {msg, msg + sizeof(msg)};
   shttp_response res = {
     .version = SHTTP_VERSION_1_0, .code = 200, .headers = SHTTP_SLICE(headers)};
@@ -153,7 +154,7 @@ TEST(shttp_msg_response, HEADERS) {
 TEST(shttp_msg_response, BODY) {
   const char ans[] = "HTTP/1.0 200 OK\r\n\r\nBODYBODY";
   const char body[] = "BODYBODY";
-  char msg[sizeof(ans)];
+  char msg[sizeof(ans)] = {0};
   shttp_mut_slice smsg = {msg, msg + sizeof(msg)};
   shttp_response res = {
     .version = SHTTP_VERSION_1_0, .code = 200, .body = SHTTP_SLICE(body)};

@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 
 #define SHTTP_UNUSED_RESULT  // disables required error handling
@@ -14,7 +15,9 @@ static char body_buff[BODY_BUFF_LENGTH];
 static shttp_response res;
 static shttp_request req;
 static shttp_conn conns[MAX_CONNS];
-static shttp_socket sock = {.conns = conns, .conn_count = MAX_CONNS};
+static shttp_conn_timer conn_timers[MAX_CONNS];
+static shttp_socket sock = {
+  .conns = conns, .conn_timers = conn_timers, .conn_count = MAX_CONNS};
 static shttp_mut_slice msg_slice = SHTTP_MUT_SLICE(msg_buff);
 static shttp_mut_slice body_slice = SHTTP_MUT_SLICE(body_buff);
 
@@ -119,8 +122,16 @@ static void dispatch(void) {
   res.body.end = body_slice.begin;
 }
 
+static void signal_handler(int sig) {
+  (void)sig;
+  if(shttp_signal_handler(&sock)) return;
+  puts("Connection closed");
+}
+
 int main(void) {
+  struct sigaction act = {.sa_handler = signal_handler};
   SHTTP_PROP(shttp_init(&sock, PORT));
+  sigaction(SIGALRM, &act, NULL);
   for(uint32_t i = 0; i < ARR_CAPACITY; i++) arr[i] = -1;
 
   while(true) {

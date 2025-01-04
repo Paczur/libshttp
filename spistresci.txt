@@ -1,0 +1,21 @@
+1. Wstęp
+2. Cel i Zakres Pracy
+3. Rys historyczny
+3.1. HTTP
+3.2. SBC
+3.3. Linux
+4. Motywacja
+5. Projekt
+5.1. Historie użytkownika
+5.2. Scenariusze użytkownika
+5.3. Wymagania
+6. Implementacja
+6.1. Przetwarzanie zapytań
+6.2. Przechowywanie danych
+6.3. Komunikacja z API Linuxa
+6.4. Keep-Alive
+6.5. Zgłaszanie błędów
+7. Testowanie
+8. Mini manual
+9. Podsumowanie
+10. Bibliografia

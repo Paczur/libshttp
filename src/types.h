@@ -6,10 +6,8 @@
 #include <stdint.h>
 #include <time.h>
 
-#define SHTTP_SLICE(x) \
-  (shttp_slice) { (x), (x) + sizeof(x) - 1 }
-#define SHTTP_MUT_SLICE(x) \
-  (shttp_mut_slice) { (x), (x) + sizeof(x) - 1 }
+#define SHTTP_SLICE(x) (shttp_slice){(x), (x) + sizeof(x) - 1}
+#define SHTTP_MUT_SLICE(x) (shttp_mut_slice){(x), (x) + sizeof(x) - 1}
 #define SHTTP_PROP(x)               \
   do {                              \
     const shttp_status _status = x; \
@@ -36,7 +34,6 @@ typedef enum shttp_status {
   SHTTP_STATUS_TIMER_CREATE,
   SHTTP_STATUS_TIMER_LIMIT,
   SHTTP_STATUS_FORMAT_INVALID,
-  SHTTP_STATUS_LAST,
 } shttp_status;
 
 typedef uint8_t shttp_conn_id;
@@ -207,12 +204,12 @@ typedef enum shttp_version {
 typedef struct shttp_slice {
   const char *begin;
   const char *end;
-} SHTTP_PACKED shttp_slice;
+} shttp_slice;
 
 typedef struct shttp_mut_slice {
   char *begin;
   char *end;
-} SHTTP_PACKED shttp_mut_slice;
+} shttp_mut_slice;
 
 typedef struct pollfd shttp_conn;
 
@@ -236,6 +233,7 @@ typedef struct shttp_request {
   shttp_socket *sock;
   shttp_slice path;
   shttp_slice headers;
+  shttp_slice body;
 } SHTTP_PACKED shttp_request;
 
 typedef struct shttp_response {

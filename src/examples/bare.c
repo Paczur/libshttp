@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #define SHTTP_UNUSED_RESULT  // disables required error handling
 #include "../shttp.h"
 
