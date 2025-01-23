@@ -1,1 +1,5 @@
-## W.I.P Http server implementation focusing on low memmory usage
+## HTTP Server implementation focused on bounded memory usage
+### Installation
+```
+make && make install
+```
