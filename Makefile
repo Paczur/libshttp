@@ -17,8 +17,7 @@ DIRS=$(BIN_DIR) $(BUILD_DIR) $(INCLUDE_DIR)
 CFLAGS_BASE=-std=gnu99
 CFLAGS=$(CFLAGS_BASE)
 SO_FLAGS=-fpic -shared
-OPTIMIZE_FLAGS=-march=native -O2 -s -pipe -flto=4 -D NDEBUG
-OPTIMIZE_BIN_FLAGS=$(OPTIMIZE_FLAGS) -fwhole-program
+OPTIMIZE_FLAGS=-march=native -s -Os -pipe -flto=4 -D NDEBUG -fwhole-program -fno-stack-protector
 
 NO_WARN_TEST_FLAGS=-Wno-unused-parameter
 WARN_FLAGS=-Wall -Wextra -Werror -Wno-error=cpp -Wunused-result -Wvla -Wshadow -Wstrict-prototypes -Wsuggest-attribute=pure -Wsuggest-attribute=const
@@ -26,7 +25,7 @@ MEMORY_DEBUG_FLAGS=-fsanitize=address -fsanitize=pointer-compare -fsanitize=poin
 SANTIIZER_FLAGS=-fsanitize=undefined -fsanitize-address-use-after-scope -fstack-check -fno-stack-clash-protection
 DEBUG_FLAGS=$(WARN_FLAGS) $(MEMORY_DEBUG_FLAGS) $(SANITIZER_FLAGS) -Og -ggdb3
 
-PROFILE_MEMORY_FLAGS=-fstack-usage
+PROFILE_MEMORY_FLAGS=-fstack-usage -fcallgraph-info=su
 LIBS_TESTS=$(shell pkg-config --cflags --libs cmocka)
 
 EXAMPLES_SRC=$(wildcard $(SRC_DIR)/examples/*.c)
@@ -51,7 +50,7 @@ $(shell mkdir -p $(dir $(LIB_DEP)))
 .PHONY: all shared release debug profile_memory check clean clean_executables so examples
 $(VERBOSE).SILENT:
 
-release: CFLAGS += $(OPTIMIZE_BIN_FLAGS)
+release: CFLAGS += $(OPTIMIZE_FLAGS)
 release: examples
 
 debug: CFLAGS += $(DEBUG_FLAGS)
@@ -61,12 +60,11 @@ shared: CFLAGS += $(OPTIMIZE_FLAGS)
 shared: so
 
 profile_memory: clean_executables
-profile_memory: CFLAGS += $(PROFILE_MEMORY_FLAGS) $(OPTIMIZE_BIN_FLAGS)
-profile_memory: examples
 profile_memory: CFLAGS = $(CFLAGS_BASE) $(PROFILE_MEMORY_FLAGS) $(OPTIMIZE_FLAGS)
+profile_memory: examples
 profile_memory: so
 
-check: CFLAGS += $(LIBS_TESTS) $(NO_WARN_TEST_FLAGS) $(OPTIMIZE_BIN_FLAGS)
+check: CFLAGS += $(LIBS_TESTS) $(NO_WARN_TEST_FLAGS) $(OPTIMIZE_FLAGS)
 check: $(TESTS_BIN)
 
 clean:

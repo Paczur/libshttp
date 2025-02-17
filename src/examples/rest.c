@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #define SHTTP_UNUSED_RESULT  // disables required error handling
+#define SHTTP_KEEP_ALIVE_ENABLE
 #include "../shttp.h"
 
 #define MSG_BUFF_LENGTH 500
@@ -86,7 +87,7 @@ static void delete(uint32_t id) {
   arr[id] = -1;
 }
 
-static void dispatch(void) {
+static inline void dispatch(void) {
   uint32_t id = 0;
   int32_t val = 0;
   shttp_slice path_slice = req.path;

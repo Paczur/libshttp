@@ -220,10 +220,10 @@ typedef struct shttp_conn_timer {
 
 typedef struct shttp_socket {
   int sock;
+  shttp_conn *const conns;
+  const shttp_conn_id conn_count;
+  shttp_conn_timer *const conn_timers;
   timer_t timer;
-  shttp_conn *conns;
-  shttp_conn_timer *conn_timers;
-  shttp_conn_id conn_count;
 } shttp_socket;
 
 typedef struct shttp_request {

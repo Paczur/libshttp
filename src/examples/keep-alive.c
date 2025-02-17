@@ -2,11 +2,12 @@
 #include <stdio.h>
 
 #define SHTTP_UNUSED_RESULT  // disables required error handling
+#define SHTTP_KEEP_ALIVE_ENABLE
 #include "../shttp.h"
 
 #define MSG_BUFF_LENGTH 500
 #define MAX_CONNS 10
-#define PORT 80
+#define PORT 2137
 
 static char msg_buff[MSG_BUFF_LENGTH];
 static shttp_response res;

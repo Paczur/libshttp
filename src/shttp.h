@@ -2,6 +2,7 @@
 #define SHTTP_H
 
 #include "conf.h"
+#include "keep_alive.h"
 #include "slice/slice.h"
 #include "types.h"
 
@@ -56,4 +57,20 @@ SHTTP_UNUSED_RESULT shttp_status shttp_init(shttp_socket sock[static 1],
 // returns: CONN_FD_CLOSE, SOCK_FD_CLOSE
 SHTTP_UNUSED_RESULT shttp_status shttp_deinit(shttp_socket sock[static 1],
                                               bool force);
+
+#ifdef SHTTP_KEEP_ALIVE_ENABLE
+#define shttp_next(req, buf, sock, timeout) \
+  shttp_keep_alive_next(req, buf, sock, timeout)
+#define shttp_next_nblk(req, buf, sock) \
+  shttp_keep_alive_next_nblk(req, buf, sock)
+#define shttp_next_ignore(req, buf, sock, timeout) \
+  shttp_keep_alive_next_ignore(req, buf, sock, timeout)
+#define shttp_next_nblk_ignore(req, buf, sock) \
+  shttp_keep_alive_next_nblk_ignore(req, buf, sock)
+#define shttp_send(buff, res) shttp_keep_alive_send(buff, res)
+#define shttp_send_ignore(buff, res) shttp_keep_alive_send_ignore(buff, res)
+#define shttp_close(sock, id) shttp_keep_alive_close(sock, id)
+#define shttp_init(sock, port) shttp_keep_alive_init(sock, port)
+#define shttp_deinit(sock, force) shttp_keep_alive_deinit(sock, force)
+#endif
 #endif

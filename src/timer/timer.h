@@ -1,6 +1,7 @@
 #ifndef SHTTP_TIMER_H
 #define SHTTP_TIMER_H
 
+#define SHTTP_KEEP_ALIVE_ENABLE
 #include "../shttp.h"
 
 void shttp_timer_next(timer_t timer, shttp_conn_timer *conn_timers,

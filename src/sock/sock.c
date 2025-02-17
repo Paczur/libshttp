@@ -176,9 +176,7 @@ shttp_status shttp_sock_deinit(shttp_socket sock[restrict 1], bool force) {
         sock->conns[i].fd = -1;
       }
     }
-    sock->conns = NULL;
   }
-  sock->conn_count = 0;
   if(sock->sock >= 0 && close(sock->sock)) return SHTTP_STATUS_SOCK_FD_CLOSE;
   sock->sock = -1;
   return SHTTP_STATUS_OK;
