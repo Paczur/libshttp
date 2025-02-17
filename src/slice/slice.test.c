@@ -661,7 +661,7 @@ TEST(shttp_slice_insert_newline, BASIC) {
   shttp_mut_slice smsg = SHTTP_MUT_SLICE(msg);
   assert_int_equal(SHTTP_STATUS_OK, shttp_slice_insert_newline(&smsg));
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
-  assert_string_equal("\r\n", msg);
+  assert_memory_equal("\r\n", msg, 2);
 }
 
 TEST(shttp_slice_insert_newline, TOO_SHORT) {
@@ -669,7 +669,7 @@ TEST(shttp_slice_insert_newline, TOO_SHORT) {
   shttp_mut_slice smsg = SHTTP_MUT_SLICE(msg);
   assert_int_equal(SHTTP_STATUS_SLICE_END, shttp_slice_insert_newline(&smsg));
   assert_ptr_equal(msg + sizeof(msg) - 1, smsg.begin);
-  assert_string_equal("\r", msg);
+  assert_memory_equal("\r", msg, 1);
 }
 
 TEST(shttp_slice_insert_u32, BASIC) {

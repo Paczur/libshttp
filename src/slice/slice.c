@@ -611,7 +611,6 @@ shttp_status shttp_header_next(shttp_slice out[static 1],
                                shttp_slice s[static 1]) {
   SHTTP_ASSERT(out != NULL);
   SHTTP_ASSERT(s != NULL);
-  SHTTP_ASSERT(out->begin <= out->end);
   SHTTP_ASSERT(s->begin <= s->end);
   const char *restrict const begin = s->begin;
   const char *restrict const end = s->end;
